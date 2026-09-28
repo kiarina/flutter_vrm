@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - MToon no longer washes out on iOS: missing matcap and shading-shift textures now zero their
   factors instead of relying on the shader's `default_black` placeholder, which samples white
   on iOS with the pinned flutter_scene.
+- Apps on flutter_scene 0.23 build again: the package's hook now creates the per-backend
+  `flutter_scene_generated/` directories that pubspec.yaml lists (0.23 writes a flat tree).
 
 ### Changed
 
