@@ -5,4 +5,5 @@
 library;
 
 export 'src/schema/glb.dart' show GlbContainer;
+export 'src/schema/vrm_animation.dart';
 export 'src/schema/vrm_document.dart';

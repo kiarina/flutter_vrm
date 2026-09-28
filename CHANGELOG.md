@@ -41,5 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `VrmSpringBoneSystem` (`avatar.springBones`), stepped by `VrmAvatar.update` after the pose.
 - Node constraints (`VRMC_node_constraint`): `VrmNodeConstraint` in the schema and
   `VrmNodeConstraints` (`avatar.constraints`), run in dependency order after the pose.
+- VRM Animation (`VRMC_vrm_animation`): `VrmAnimation` reads `.vrma` into normalized
+  rotations, the hips position, expression, and look-at tracks (linear, step, and cubic
+  spline); `VrmAnimationPlayer` plays it on an avatar. `VrmHumanoidRig.setHipsPosition`,
+  `restModelPosition`, and `VrmHumanBone.parent`.
 - Example viewer app and `mise run fetch-samples`. The example's `turn` pose swings the hips
-  to show spring bones.
+  to show spring bones; `.vrma` assets play from the pose chips.

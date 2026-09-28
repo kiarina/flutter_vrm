@@ -10,6 +10,8 @@ class _BoneRest {
     required this.rotation,
     required this.scale,
     required this.parentModelRotation,
+    required this.parentModelInverse,
+    required this.modelPosition,
   });
 
   final Node node;
@@ -19,6 +21,12 @@ class _BoneRest {
 
   /// Rest rotation of the bone's parent node, in model space.
   final Matrix3 parentModelRotation;
+
+  /// Inverse of the parent node's rest transform in model space.
+  final Matrix4 parentModelInverse;
+
+  /// Rest position of the bone in model space.
+  final Vector3 modelPosition;
 
   late final Matrix3 parentModelRotationInverse = Matrix3.copy(
     parentModelRotation,
@@ -50,13 +58,10 @@ class VrmHumanoidRig {
     this.modelRoot,
   ) {
     final rootInverse = Matrix4.inverted(modelRoot.globalTransform);
-    Matrix3 modelRotationOf(Node? node) {
-      if (node == null || identical(node, modelRoot)) {
-        return Matrix3.identity();
-      }
-      final m = rootInverse * node.globalTransform as Matrix4;
-      return _rotationOf(m);
-    }
+    Matrix4 modelTransformOf(Node? node) =>
+        node == null || identical(node, modelRoot)
+        ? Matrix4.identity()
+        : rootInverse * node.globalTransform as Matrix4;
 
     for (final entry in humanBones.entries) {
       final node = gltfNodes[entry.value];
@@ -70,7 +75,9 @@ class VrmHumanoidRig {
         translation: t,
         rotation: q.asRotationMatrix(),
         scale: s,
-        parentModelRotation: modelRotationOf(node.parent),
+        parentModelRotation: _rotationOf(modelTransformOf(node.parent)),
+        parentModelInverse: Matrix4.inverted(modelTransformOf(node.parent)),
+        modelPosition: modelTransformOf(node).getTranslation(),
       );
     }
   }
@@ -81,6 +88,7 @@ class VrmHumanoidRig {
 
   final Map<VrmHumanBone, _BoneRest> _rest = {};
   final Map<VrmHumanBone, Matrix3> _normalized = {};
+  Vector3? _hipsPosition;
 
   /// The bones this model maps.
   Iterable<VrmHumanBone> get bones => _rest.keys;
@@ -99,11 +107,27 @@ class VrmHumanoidRig {
     return m == null ? null : Quaternion.fromRotation(m);
   }
 
+  /// Moves the hips to [modelPosition] (model space), or back to their rest
+  /// place with null. Animations use this for walking, sitting down, and the
+  /// like; the rest of the body follows.
+  void setHipsPosition(Vector3? modelPosition) =>
+      _hipsPosition = modelPosition?.clone();
+
+  /// The hips position set with [setHipsPosition], or null for rest.
+  Vector3? get hipsPosition => _hipsPosition?.clone();
+
+  /// [bone]'s rest (T-pose) position in model space, or null when unmapped.
+  Vector3? restModelPosition(VrmHumanBone bone) =>
+      _rest[bone]?.modelPosition.clone();
+
   /// Clears [bone] back to its rest rotation.
   void clearNormalizedRotation(VrmHumanBone bone) => _normalized.remove(bone);
 
-  /// Returns every bone to the rest pose.
-  void resetPose() => _normalized.clear();
+  /// Returns every bone to the rest pose (and the hips to their rest place).
+  void resetPose() {
+    _normalized.clear();
+    _hipsPosition = null;
+  }
 
   /// Writes the normalized pose into the imported nodes.
   ///
@@ -127,8 +151,11 @@ class VrmHumanoidRig {
                     rest.rotation
                 as Matrix3;
       }
+      final hips = _hipsPosition;
       rest.node.localTransform = Matrix4.compose(
-        rest.translation,
+        entry.key == VrmHumanBone.hips && hips != null
+            ? rest.parentModelInverse.transform3(hips.clone())
+            : rest.translation,
         Quaternion.fromRotation(rotation),
         rest.scale,
       );

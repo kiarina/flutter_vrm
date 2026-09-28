@@ -33,10 +33,12 @@ flutter_vrm は同じバイト列からその拡張を読み、読み込まれ�
 - **SpringBone**: `VRMC_springBone` の揺れもの（髪、服）を、硬さ・重力・空気抵抗に従って揺らし、球とカプセルのコライダーに当てる。
   アバターを動かす・回す（`avatar.root`）と揺れ、寝かせても重力は世界の下向きのまま
 - **ノードの拘束**: `VRMC_node_constraint` の roll・aim・rotation（ねじれの補助骨、腕に付いてくる袖など）
+- **VRM Animation**: `.vrma` を任意の VRM 1.0 のモデルで再生する（`VrmAnimation`、`VrmAnimationPlayer`）。humanoid の回転
+  （正規化した回転で移し替え、モデルに無い骨は子へ畳み込む）、モデルの大きさに合わせた hips の移動、表情、視線
 - **自動まばたき**
 - **描画に依存しないパーサー**: `package:flutter_vrm/vrm_schema.dart` は flutter_scene を使わずに GLB と VRM 1.0 を読む
 
-まだ無いもの: VRM Animation（`.vrma`）、一人称の設定、VRM 0.x のファイル。
+まだ無いもの: 一人称の設定、VRM 0.x のファイル。
 MToon の描画順（render queue の offset）は無視します（flutter_scene は半透明の面を深度で並べ替える）。
 
 MToon の光はシーンではなく `avatar.mtoonLighting` から読みます。flutter_scene の独自材質がまだシーンの光を読めないためです。
@@ -84,6 +86,20 @@ avatar.lookAt.target = camera.position;
 avatar.update(deltaSeconds, camera: camera);
 ```
 
+VRM Animation を再生するときは、毎フレーム、アバターより先にプレイヤーを進めます。
+
+```dart
+final motion = await rootBundle.load('assets/wave.vrma');
+final player = VrmAnimationPlayer(
+  avatar,
+  VrmAnimation.fromGlb(motion.buffer.asUint8List()),
+);
+
+// 毎フレーム:
+player.update(deltaSeconds);
+avatar.update(deltaSeconds, camera: camera);
+```
+
 アバターを動かす・向きを変えるときは `avatar.root` を変えます。モデルは自分の空間で +Z を向いており、flutter_scene のシーンでは -Z を向きます。
 
 ### Which flutter_scene
@@ -109,16 +125,16 @@ dependency_overrides:
 
 ## Example
 
-`example/` はビューアです。モデルを選び、カメラを回し、ポーズと表情のスライダーを試し、視線とまばたきを切り替え、
-モデルのライセンスを確かめられます。
+`example/` はビューアです。モデルを選び、カメラを回し、ポーズ・VRM Animation・表情のスライダーを試し、視線・まばたき・
+揺れものを切り替え、モデルのライセンスを確かめられます。
 
 ```sh
-mise run fetch-samples      # VRM コンソーシアムのサンプルをダウンロードする
+mise run fetch-samples      # サンプルのモデルとアニメーションをダウンロードする
 cd example
 flutter run -d macos        # ios、android、windows、chrome でも
 ```
 
-自分の `.vrm` を `example/assets/local/`（git の対象外）に置くと、一覧に出ます。
+自分の `.vrm` と `.vrma` を `example/assets/local/`（git の対象外）に置くと、一覧に出ます。
 
 ## Development
 
@@ -136,7 +152,8 @@ example は次のモデルを [vrm-c/vrm-specification](https://github.com/vrm-c
 - Seed-san: Seed-san model by VirtualCast, Inc.（[VRM Public License 1.0](https://vrm.dev/licenses/1.0/)）
 - VRM1_Constraint_Twist_Sample: (c) 2022 pixiv Inc.（[VRM Public License 1.0](https://vrm.dev/licenses/1.0/)）
 
-上の画像は、この 2 体を example アプリで表示したものです。
+上の画像は、この 2 体を example アプリで表示したものです。example はさらに
+[pixiv/three-vrm](https://github.com/pixiv/three-vrm) の `test.vrma`（MIT、(c) pixiv Inc.）をダウンロードします。
 
 ## License
 

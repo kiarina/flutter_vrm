@@ -68,6 +68,11 @@ class _ViewerPageState extends State<ViewerPage> {
   );
 
   List<String> models = [];
+
+  /// `.vrma` assets, offered next to the built-in poses.
+  List<String> animations = [];
+  final Map<String, VrmAnimation> _animationCache = {};
+  VrmAnimationPlayer? player;
   String? current;
   VrmAvatar? avatar;
   String status = 'initializing';
@@ -121,6 +126,16 @@ class _ViewerPageState extends State<ViewerPage> {
             .where((a) => a.toLowerCase().endsWith('.vrm'))
             .toList()
           ..sort();
+    animations =
+        manifest
+            .listAssets()
+            .where((a) => a.toLowerCase().endsWith('.vrma'))
+            .toList()
+          ..sort();
+    final initialAnimation = animations
+        .where((a) => pose.endsWith('.vrma') && a.endsWith(pose))
+        .firstOrNull;
+    if (initialAnimation != null) pose = initialAnimation;
     setState(() {
       ready = true;
       status = models.isEmpty
@@ -193,9 +208,26 @@ class _ViewerPageState extends State<ViewerPage> {
     final a = avatar;
     if (a == null) return;
     a.humanoid.resetPose();
+    player = null;
+    if (pose.endsWith('.vrma')) {
+      _playAnimation(a, pose);
+      return;
+    }
     final rotations = kPoses[pose] ?? const {};
     for (final e in rotations.entries) {
       a.humanoid.setNormalizedRotation(e.key, e.value);
+    }
+  }
+
+  Future<void> _playAnimation(VrmAvatar a, String asset) async {
+    try {
+      final animation = _animationCache[asset] ??= VrmAnimation.fromGlb(
+        (await rootBundle.load(asset)).buffer.asUint8List(),
+      );
+      if (!identical(avatar, a) || pose != asset) return;
+      setState(() => player = VrmAnimationPlayer(a, animation));
+    } on Object catch (e) {
+      setState(() => status = 'animation failed: $e');
     }
   }
 
@@ -237,6 +269,7 @@ class _ViewerPageState extends State<ViewerPage> {
           ),
         );
       }
+      player?.update(dt);
       a.update(dt, camera: camera);
     }
   }
@@ -248,6 +281,7 @@ class _ViewerPageState extends State<ViewerPage> {
     Widget controls(VrmAvatar a) => _Controls(
       avatar: a,
       pose: pose,
+      animations: animations,
       lookAtCamera: lookAtCamera,
       showMeta: showMeta,
       onPose: (p) => setState(() {
@@ -272,6 +306,7 @@ class _ViewerPageState extends State<ViewerPage> {
                     child: _Controls(
                       avatar: a,
                       pose: pose,
+                      animations: animations,
                       lookAtCamera: lookAtCamera,
                       showMeta: showMeta,
                       onPose: (p) {
@@ -410,6 +445,7 @@ class _Controls extends StatelessWidget {
   const _Controls({
     required this.avatar,
     required this.pose,
+    required this.animations,
     required this.lookAtCamera,
     required this.showMeta,
     required this.onPose,
@@ -423,6 +459,9 @@ class _Controls extends StatelessWidget {
   final bool lookAtCamera;
   final bool showMeta;
   final ValueChanged<String> onPose;
+
+  /// `.vrma` assets, shown as extra pose chips.
+  final List<String> animations;
   final ValueChanged<bool> onLookAt;
   final ValueChanged<bool> onMeta;
   final VoidCallback onChanged;
@@ -451,6 +490,13 @@ class _Controls extends StatelessWidget {
               for (final p in kPoses.keys)
                 ChoiceChip(
                   label: Text(p),
+                  selected: pose == p,
+                  onSelected: (_) => onPose(p),
+                ),
+              for (final p in animations)
+                ChoiceChip(
+                  avatar: const Icon(Icons.play_arrow, size: 16),
+                  label: Text(p.split('/').last),
                   selected: pose == p,
                   onSelected: (_) => onPose(p),
                 ),

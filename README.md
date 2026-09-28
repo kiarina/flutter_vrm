@@ -42,11 +42,15 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   avatar lies down
 - **Node constraints**: `VRMC_node_constraint` roll, aim, and rotation constraints (twist
   bones, sleeves that follow the arms)
+- **VRM Animation**: play `.vrma` files (`VrmAnimation`, `VrmAnimationPlayer`) on any VRM 1.0
+  model: humanoid rotations (retargeted through normalized rotations, bones the model lacks
+  folded into their children), the hips translation scaled to the model, expressions, and
+  look-at
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene
 
-Not yet: VRM Animation (`.vrma`); first-person settings; and VRM 0.x files. MToon's render queue offsets are ignored (flutter_scene sorts translucent
+Not yet: first-person settings and VRM 0.x files. MToon's render queue offsets are ignored (flutter_scene sorts translucent
 surfaces by depth).
 
 MToon reads its light from `avatar.mtoonLighting` rather than the scene, because flutter_scene's
@@ -98,6 +102,20 @@ avatar.lookAt.target = camera.position;
 avatar.update(deltaSeconds, camera: camera);
 ```
 
+To play a VRM Animation, step a player before the avatar each frame:
+
+```dart
+final motion = await rootBundle.load('assets/wave.vrma');
+final player = VrmAnimationPlayer(
+  avatar,
+  VrmAnimation.fromGlb(motion.buffer.asUint8List()),
+);
+
+// Every frame:
+player.update(deltaSeconds);
+avatar.update(deltaSeconds, camera: camera);
+```
+
 Move or turn the avatar through `avatar.root`. The model faces +Z in its own space, which
 flutter_scene maps to -Z in the scene.
 
@@ -125,16 +143,18 @@ dependency_overrides:
 
 ## Example
 
-`example/` is a viewer: pick a model, orbit the camera, try poses and expression sliders,
-toggle look-at and blinking, and read the model's license.
+`example/` is a viewer: pick a model, orbit the camera, try poses, VRM Animations, and
+expression sliders, toggle look-at, blinking, and spring bones, and read the model's
+license.
 
 ```sh
-mise run fetch-samples      # downloads the VRM Consortium samples
+mise run fetch-samples      # downloads the sample models and animation
 cd example
 flutter run -d macos        # or ios, android, windows, chrome
 ```
 
-Put your own `.vrm` files in `example/assets/local/` (git-ignored) to see them in the list.
+Put your own `.vrm` and `.vrma` files in `example/assets/local/` (git-ignored) to see them
+in the lists.
 
 ## Development
 
@@ -153,7 +173,8 @@ they are not included in this repository.
 - Seed-san: Seed-san model by VirtualCast, Inc. ([VRM Public License 1.0](https://vrm.dev/licenses/1.0/))
 - VRM1_Constraint_Twist_Sample: (c) 2022 pixiv Inc. ([VRM Public License 1.0](https://vrm.dev/licenses/1.0/))
 
-The image above shows both samples in the example app.
+The image above shows both samples in the example app. The example also downloads
+`test.vrma` from [pixiv/three-vrm](https://github.com/pixiv/three-vrm) (MIT, (c) pixiv Inc.).
 
 ## License
 

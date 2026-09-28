@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-#MISE description="Download the VRM Consortium sample models into example/assets/samples/"
+#MISE description="Download the sample models and animation into example/assets/samples/"
 # Both samples allow redistribution under the VRM Public License 1.0, but they
 # are kept out of git to keep the repository small. Seed-san requires credit
-# (VirtualCast, Inc.). Pinned to a vrm-c/vrm-specification commit.
+# (VirtualCast, Inc.). Pinned to a vrm-c/vrm-specification commit. The test
+# animation is three-vrm's (MIT), pinned to a pixiv/three-vrm commit.
 set -euo pipefail
 REF="${VRM_SPEC_REF:-821c11b250d8c70d5804ee13431e42bee56ea9c0}"
 BASE="https://raw.githubusercontent.com/vrm-c/vrm-specification/$REF/samples"
@@ -14,3 +15,12 @@ for f in Seed-san/vrm/Seed-san.vrm VRM1_Constraint_Twist_Sample/vrm/VRM1_Constra
   curl -fsSL -o "$out" "$BASE/$f"
   echo "fetched $(basename "$f") ($(wc -c < "$out" | tr -d ' ') bytes)"
 done
+THREE_VRM_REF="${THREE_VRM_REF:-63dd83ce7834b4b8ffaedda71c7d8e5fffa421dd}"
+out="$DEST/test.vrma"
+if [ -s "$out" ]; then
+  echo "have test.vrma"
+else
+  curl -fsSL -o "$out" \
+    "https://raw.githubusercontent.com/pixiv/three-vrm/$THREE_VRM_REF/packages/three-vrm-animation/examples/models/test.vrma"
+  echo "fetched test.vrma ($(wc -c < "$out" | tr -d ' ') bytes)"
+fi
