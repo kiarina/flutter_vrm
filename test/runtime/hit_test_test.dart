@@ -108,6 +108,42 @@ void main() {
     );
   });
 
+  test('the head capsule reaches the top of the meshes (big heads)', () async {
+    // A mesh whose POSITION accessor reaches 2.0 m: a head 0.5 m tall.
+    final json = bodyVrm();
+    json['meshes'] = [
+      {
+        'primitives': [
+          {
+            'attributes': {'POSITION': 0},
+          },
+        ],
+      },
+    ];
+    json['accessors'] = [
+      {
+        'componentType': 5126,
+        'count': 1,
+        'type': 'VEC3',
+        'min': [-0.3, 0, -0.2],
+        'max': [0.3, 2.0, 0.2],
+      },
+    ];
+    final nodes = json['nodes'] as List;
+    nodes.add({'name': 'Body', 'mesh': 0});
+    ((nodes[0] as Map<String, dynamic>)['children'] as List).add(
+      nodes.length - 1,
+    );
+    final big = await VrmAvatar.fromImported(
+      VrmDocument.fromGltfJson(json),
+      importLike(json),
+      mtoon: false,
+    );
+    expect(big.hitTest(fromFront(1.9))?.bone, VrmHumanBone.head);
+    // Without the mesh, an average head does not reach that high.
+    expect((await load()).hitTest(fromFront(1.9)), isNull);
+  });
+
   test(
     'hitTestAll picks the nearest avatar; scaling scales the capsules',
     () async {
