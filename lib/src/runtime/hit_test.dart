@@ -58,6 +58,7 @@ class VrmHitShapes {
     this._modelRoot, {
     VrmSpringBoneDefinition? springBone,
     List<Node?> gltfNodes = const [],
+    Map<String, dynamic>? gltf,
   }) {
     final hips = _humanoid.restModelPosition(VrmHumanBone.hips);
     // Proportions of an average adult with the hips at 0.85 m.
@@ -128,7 +129,7 @@ class VrmHitShapes {
     // rest bounds), so big-headed and chibi models are covered too. Without
     // bounds, an average adult head.
     final headRest = _humanoid.restModelPosition(VrmHumanBone.head);
-    final top = _modelTop(gltfNodes);
+    final top = _modelTop(gltf, gltfNodes);
     final measured = headRest == null || top == null ? 0.0 : top - headRest.y;
     final headSize = measured > 0.05 && measured < 2 * (headRest?.y ?? 1)
         ? measured
@@ -208,21 +209,46 @@ class VrmHitShapes {
   /// How many spring bone colliders the model has (see [hitTest]).
   int get springColliderCount => _colliders.length;
 
-  /// The highest point of the model's meshes at rest, in model space.
-  double? _modelTop(List<Node?> nodes) {
+  /// The highest point of the model's meshes at rest, in model space, from
+  /// the POSITION accessors' min / max (which glTF requires) placed by each
+  /// mesh node. (The imported geometry of skinned meshes carries no bounds.)
+  double? _modelTop(Map<String, dynamic>? gltf, List<Node?> nodes) {
+    if (gltf == null) return null;
+    final json = (gltf['nodes'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
+    final meshes = (gltf['meshes'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
+    final accessors = (gltf['accessors'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
     final rootInverse = Matrix4.inverted(_modelRoot.globalTransform);
     double? top;
-    for (final node in nodes) {
-      final mesh = node?.mesh;
-      if (node == null || mesh == null) continue;
-      final m = rootInverse * node.globalTransform as Matrix4;
-      for (final p in mesh.primitives) {
-        final b = p.geometry.localBounds;
-        if (b == null) continue;
-        for (final x in [b.min.x, b.max.x]) {
-          for (final y in [b.min.y, b.max.y]) {
-            for (final z in [b.min.z, b.max.z]) {
-              final v = m.transform3(Vector3(x, y, z));
+    for (var i = 0; i < json.length && i < nodes.length; i++) {
+      final meshIndex = json[i]['mesh'] as int?;
+      final node = nodes[i];
+      if (meshIndex == null || node == null || meshIndex >= meshes.length) {
+        continue;
+      }
+      // Skinned meshes ignore their node's transform (glTF); others use it.
+      final m = json[i]['skin'] != null
+          ? Matrix4.identity()
+          : rootInverse * node.globalTransform as Matrix4;
+      for (final p
+          in (meshes[meshIndex]['primitives'] as List? ?? const [])
+              .cast<Map<String, dynamic>>()) {
+        final index =
+            (p['attributes'] as Map<String, dynamic>?)?['POSITION'] as int?;
+        if (index == null || index >= accessors.length) continue;
+        final min = (accessors[index]['min'] as List?)?.cast<num>();
+        final max = (accessors[index]['max'] as List?)?.cast<num>();
+        if (min == null || max == null || min.length < 3 || max.length < 3) {
+          continue;
+        }
+        for (final x in [min[0], max[0]]) {
+          for (final y in [min[1], max[1]]) {
+            for (final z in [min[2], max[2]]) {
+              final v = m.transform3(
+                Vector3(x.toDouble(), y.toDouble(), z.toDouble()),
+              );
               if (top == null || v.y > top) top = v.y;
             }
           }

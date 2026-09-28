@@ -214,6 +214,7 @@ class VrmAvatar {
         imported,
         springBone: document.springBone,
         gltfNodes: nodes,
+        gltf: document.gltf,
       ),
       springBones: VrmSpringBoneSystem(document.springBone, nodes, imported),
       mtoonMaterials: mtoonHandles,
