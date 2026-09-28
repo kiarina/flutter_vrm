@@ -216,7 +216,61 @@ class _ViewerPageState extends State<ViewerPage> {
   Widget build(BuildContext context) {
     if (!ready) return Scaffold(body: Center(child: Text(status)));
     final a = avatar;
+    Widget controls(VrmAvatar a) => _Controls(
+      avatar: a,
+      pose: pose,
+      lookAtCamera: lookAtCamera,
+      showMeta: showMeta,
+      onPose: (p) => setState(() {
+        pose = p;
+        _applyPose();
+      }),
+      onLookAt: (v) => setState(() => lookAtCamera = v),
+      onMeta: (v) => setState(() => showMeta = v),
+      onChanged: () => setState(() {}),
+    );
+    // Phones get the controls in a bottom sheet instead of a side panel.
+    final wide = MediaQuery.sizeOf(context).width >= 700;
     return Scaffold(
+      floatingActionButton: !wide && a != null
+          ? FloatingActionButton.small(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                builder: (_) => StatefulBuilder(
+                  builder: (context, setSheet) => SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.45,
+                    child: _Controls(
+                      avatar: a,
+                      pose: pose,
+                      lookAtCamera: lookAtCamera,
+                      showMeta: showMeta,
+                      onPose: (p) {
+                        setState(() {
+                          pose = p;
+                          _applyPose();
+                        });
+                        setSheet(() {});
+                      },
+                      onLookAt: (v) {
+                        setState(() => lookAtCamera = v);
+                        setSheet(() {});
+                      },
+                      onMeta: (v) {
+                        setState(() => showMeta = v);
+                        setSheet(() {});
+                      },
+                      onChanged: () {
+                        setState(() {});
+                        setSheet(() {});
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              child: const Icon(Icons.tune),
+            )
+          : null,
       body: Row(
         children: [
           Expanded(
@@ -255,7 +309,7 @@ class _ViewerPageState extends State<ViewerPage> {
                 ),
                 Positioned(
                   left: 12,
-                  top: 12,
+                  top: MediaQuery.paddingOf(context).top + 12,
                   right: 12,
                   child: _TopBar(
                     models: models,
@@ -273,23 +327,7 @@ class _ViewerPageState extends State<ViewerPage> {
               ],
             ),
           ),
-          if (a != null)
-            SizedBox(
-              width: 300,
-              child: _Controls(
-                avatar: a,
-                pose: pose,
-                lookAtCamera: lookAtCamera,
-                showMeta: showMeta,
-                onPose: (p) => setState(() {
-                  pose = p;
-                  _applyPose();
-                }),
-                onLookAt: (v) => setState(() => lookAtCamera = v),
-                onMeta: (v) => setState(() => showMeta = v),
-                onChanged: () => setState(() {}),
-              ),
-            ),
+          if (a != null && wide) SizedBox(width: 300, child: controls(a)),
         ],
       ),
     );
