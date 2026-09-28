@@ -37,9 +37,15 @@ class VrmMToonLighting {
 
 /// One glTF material rendered with flutter_vrm's MToon `.fmat`.
 class VrmMToonMaterialHandle implements VrmMaterialHandle {
-  VrmMToonMaterialHandle._(this.material);
+  VrmMToonMaterialHandle._(this.material, this.outlineMaterial);
 
   final PreprocessedMaterial material;
+
+  /// The outline hull's material, drawn as an extra primitive on the same
+  /// geometry, or null when the material has no outline.
+  final PreprocessedMaterial? outlineMaterial;
+
+  Iterable<PreprocessedMaterial> get _all => [material, ?outlineMaterial];
 
   final Map<String, Vector4> _colors = {};
   Vector2 _uvOffset = Vector2.zero();
@@ -51,6 +57,7 @@ class VrmMToonMaterialHandle implements VrmMaterialHandle {
     'shadeColor': 'shade_color_factor',
     'matcapColor': 'matcap_factor',
     'rimColor': 'parametric_rim_color_factor',
+    'outlineColor': 'outline_color_factor',
   };
 
   @override
@@ -61,10 +68,12 @@ class VrmMToonMaterialHandle implements VrmMaterialHandle {
     final param = _colorParams[type];
     if (param == null || !_colors.containsKey(type)) return;
     _colors[type] = value.clone();
-    if (type == 'color') {
-      material.parameters.setVec4(param, value);
-    } else {
-      material.parameters.setVec3(param, value.xyz);
+    for (final m in _all) {
+      if (type == 'color') {
+        m.parameters.setVec4(param, value);
+      } else {
+        m.parameters.setVec3(param, value.xyz);
+      }
     }
   }
 
@@ -76,19 +85,29 @@ class VrmMToonMaterialHandle implements VrmMaterialHandle {
   void writeUvTransform(Vector2 offset, Vector2 scale) {
     _uvOffset = offset.clone();
     _uvScale = scale.clone();
-    material.parameters
-      ..setVec2('uv_offset', offset)
-      ..setVec2('uv_scale', scale);
+    for (final m in _all) {
+      m.parameters
+        ..setVec2('uv_offset', offset)
+        ..setVec2('uv_scale', scale);
+    }
   }
 
-  /// Writes the per-frame inputs.
-  void updateFrame(VrmMToonLighting lighting, double time) {
-    material.parameters
-      ..setVec3('light_direction', lighting.direction)
-      ..setVec3('light_color', lighting.color)
-      ..setVec3('gi_sky_color', lighting.skyColor)
-      ..setVec3('gi_ground_color', lighting.groundColor)
-      ..setFloat('time', time);
+  /// Writes the per-frame inputs. [screenScale] is 2 * tan(fovY / 2) of the
+  /// camera, for outlines sized in screen coordinates.
+  void updateFrame(
+    VrmMToonLighting lighting,
+    double time, {
+    double screenScale = 0.828,
+  }) {
+    for (final m in _all) {
+      m.parameters
+        ..setVec3('light_direction', lighting.direction)
+        ..setVec3('light_color', lighting.color)
+        ..setVec3('gi_sky_color', lighting.skyColor)
+        ..setVec3('gi_ground_color', lighting.groundColor)
+        ..setFloat('time', time);
+    }
+    outlineMaterial?.parameters.setFloat('outline_screen_scale', screenScale);
   }
 }
 
@@ -126,7 +145,92 @@ class VrmMToonFactory {
       'assets/materials/$stem.fmat',
       package: 'flutter_vrm',
     );
-    final handle = VrmMToonMaterialHandle._(material);
+    final outlineMode = switch (mtoon['outlineWidthMode']) {
+      'worldCoordinates' => 1,
+      'screenCoordinates' => 2,
+      _ => 0,
+    };
+    final outlineWidth = _num(mtoon['outlineWidthFactor'], 0);
+    final outline = outlineMode != 0 && outlineWidth > 0
+        ? await loadFmatMaterial(
+            alphaMode == 'BLEND'
+                ? 'assets/materials/mtoon_outline_blend.fmat'
+                : 'assets/materials/mtoon_outline.fmat',
+            package: 'flutter_vrm',
+          )
+        : null;
+    final handle = VrmMToonMaterialHandle._(material, outline);
+    if (outline != null) {
+      final outlineColor = _vec3(mtoon['outlineColorFactor'], [0, 0, 0]);
+      outline.parameters
+        ..setInt('is_outline', 1)
+        ..setInt('outline_width_mode', outlineMode)
+        ..setFloat('outline_width_factor', outlineWidth)
+        ..setVec3('outline_color_factor', outlineColor)
+        ..setFloat(
+          'outline_lighting_mix_factor',
+          _num(mtoon['outlineLightingMixFactor'], 1),
+        );
+      handle._colors['outlineColor'] = Vector4(
+        outlineColor.x,
+        outlineColor.y,
+        outlineColor.z,
+        1,
+      );
+    }
+    for (final target in handle._all) {
+      await _configure(target, m, ext, mtoon, imported, alphaMode);
+    }
+    final pbr = m['pbrMetallicRoughness'] as Map<String, dynamic>? ?? const {};
+    final baseColor = _vec4(pbr['baseColorFactor'], [1, 1, 1, 1]);
+    handle._colors['color'] = baseColor;
+    final emissive = _emissive(m, ext);
+    handle._colors['emissionColor'] = Vector4(
+      emissive.x,
+      emissive.y,
+      emissive.z,
+      1,
+    );
+    final shade = _vec3(mtoon['shadeColorFactor'], [0, 0, 0]);
+    final matcap = mtoon['matcapTexture'] == null
+        ? Vector3.zero()
+        : _vec3(mtoon['matcapFactor'], [1, 1, 1]);
+    final rim = _vec3(mtoon['parametricRimColorFactor'], [0, 0, 0]);
+    handle._colors['shadeColor'] = Vector4(shade.x, shade.y, shade.z, 1);
+    handle._colors['matcapColor'] = Vector4(matcap.x, matcap.y, matcap.z, 1);
+    handle._colors['rimColor'] = Vector4(rim.x, rim.y, rim.z, 1);
+    final baseInfo = pbr['baseColorTexture'] as Map<String, dynamic>?;
+    final transform =
+        (baseInfo?['extensions']
+                as Map<String, dynamic>?)?['KHR_texture_transform']
+            as Map<String, dynamic>?;
+    // The base color texture's KHR_texture_transform is the UV transform the
+    // whole material uses (as VRM expressions assume).
+    handle.writeUvTransform(
+      _vec2(transform?['offset'], [0, 0]),
+      _vec2(transform?['scale'], [1, 1]),
+    );
+    return handle;
+  }
+
+  static Vector3 _emissive(Map<String, dynamic> m, Map<String, dynamic> ext) {
+    final strength = _num(
+      (ext['KHR_materials_emissive_strength']
+          as Map<String, dynamic>?)?['emissiveStrength'],
+      1,
+    );
+    return _vec3(m['emissiveFactor'], [0, 0, 0]) * strength;
+  }
+
+  /// Writes glTF material [m]'s MToon inputs and textures into [material].
+  Future<void> _configure(
+    PreprocessedMaterial material,
+    Map<String, dynamic> m,
+    Map<String, dynamic> ext,
+    Map<String, dynamic> mtoon,
+    Material? imported,
+    String alphaMode,
+  ) async {
     final p = material.parameters;
 
     final pbr = m['pbrMetallicRoughness'] as Map<String, dynamic>? ?? const {};
@@ -139,21 +243,7 @@ class VrmMToonFactory {
         _ => 0,
       })
       ..setFloat('alpha_cutoff', _num(m['alphaCutoff'], 0.5));
-    handle._colors['color'] = baseColor;
-
-    final emissiveStrength = _num(
-      (ext['KHR_materials_emissive_strength']
-          as Map<String, dynamic>?)?['emissiveStrength'],
-      1,
-    );
-    final emissive = _vec3(m['emissiveFactor'], [0, 0, 0]) * emissiveStrength;
-    p.setVec3('emissive_factor', emissive);
-    handle._colors['emissionColor'] = Vector4(
-      emissive.x,
-      emissive.y,
-      emissive.z,
-      1,
-    );
+    p.setVec3('emissive_factor', _emissive(m, ext));
 
     final shade = _vec3(mtoon['shadeColorFactor'], [0, 0, 0]);
     final matcap = _vec3(mtoon['matcapFactor'], [1, 1, 1]);
@@ -192,21 +282,7 @@ class VrmMToonFactory {
         'uv_animation_rotation_speed_factor',
         _num(mtoon['uvAnimationRotationSpeedFactor'], 0),
       );
-    handle._colors['shadeColor'] = Vector4(shade.x, shade.y, shade.z, 1);
-    handle._colors['matcapColor'] = Vector4(matcap.x, matcap.y, matcap.z, 1);
-    handle._colors['rimColor'] = Vector4(rim.x, rim.y, rim.z, 1);
-
-    // The base color texture's KHR_texture_transform is the UV transform the
-    // whole material uses (as VRM expressions assume).
     final baseInfo = pbr['baseColorTexture'] as Map<String, dynamic>?;
-    final transform =
-        (baseInfo?['extensions']
-                as Map<String, dynamic>?)?['KHR_texture_transform']
-            as Map<String, dynamic>?;
-    handle.writeUvTransform(
-      _vec2(transform?['offset'], [0, 0]),
-      _vec2(transform?['scale'], [1, 1]),
-    );
 
     // Textures. The base color and emissive ones come from the importer.
     Future<void> bind(
@@ -253,7 +329,17 @@ class VrmMToonFactory {
         'uv_animation_mask_texture',
         mtoon['uvAnimationMaskTexture'] as Map<String, dynamic>?,
       ),
+      bind('normal_texture', m['normalTexture'] as Map<String, dynamic>?),
+      bind(
+        'outline_width_multiply_texture',
+        mtoon['outlineWidthMultiplyTexture'] as Map<String, dynamic>?,
+      ),
     ]);
+    final normalInfo = m['normalTexture'] as Map<String, dynamic>?;
+    p.setFloat(
+      'normal_scale',
+      normalInfo == null ? 0 : _num(normalInfo['scale'], 1),
+    );
     // Missing textures must contribute nothing. Do not rely on the shader's
     // `default_black` placeholder: on iOS it samples white (seen with
     // flutter_scene b02c999), which adds a full-strength matcap everywhere.
@@ -264,26 +350,45 @@ class VrmMToonFactory {
     );
     if (mtoon['matcapTexture'] == null) {
       p.setVec3('matcap_factor', Vector3.zero());
-      handle._colors['matcapColor'] = Vector4(0, 0, 0, 1);
     }
-    return handle;
+    p.setInt(
+      'has_outline_width_texture',
+      mtoon['outlineWidthMultiplyTexture'] == null ? 0 : 1,
+    );
+  }
+
+  int? _imageOf(int textureIndex) {
+    final textures = (gltf['textures'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
+    if (textureIndex < 0 || textureIndex >= textures.length) return null;
+    return textures[textureIndex]['source'] as int?;
   }
 
   Future<Texture2D?> _texture(int textureIndex) {
-    final textures = (gltf['textures'] as List? ?? const [])
-        .cast<Map<String, dynamic>>();
-    if (textureIndex < 0 || textureIndex >= textures.length) {
-      return Future.value(null);
-    }
-    final image = textures[textureIndex]['source'] as int?;
+    final image = _imageOf(textureIndex);
     if (image == null) return Future.value(null);
     return _images.putIfAbsent(image, () => _decodeImage(image));
   }
 
   Future<Texture2D?> _decodeImage(int imageIndex) async {
+    final bytes = _imageBytes(imageIndex);
+    if (bytes == null) return null;
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    try {
+      return await Texture2D.fromImage(frame.image);
+    } finally {
+      frame.image.dispose();
+      codec.dispose();
+    }
+  }
+
+  /// The encoded bytes of image [imageIndex], embedded in the binary chunk
+  /// or as a data URI.
+  Uint8List? _imageBytes(int? imageIndex) {
     final images = (gltf['images'] as List? ?? const [])
         .cast<Map<String, dynamic>>();
-    if (imageIndex >= images.length) return null;
+    if (imageIndex == null || imageIndex >= images.length) return null;
     final image = images[imageIndex];
     Uint8List? bytes;
     final viewIndex = image['bufferView'] as int?;
@@ -306,16 +411,8 @@ class VrmMToonFactory {
       debugPrint(
         'flutter_vrm: MToon image $imageIndex is not embedded; skipped',
       );
-      return null;
     }
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    try {
-      return await Texture2D.fromImage(frame.image);
-    } finally {
-      frame.image.dispose();
-      codec.dispose();
-    }
+    return bytes;
   }
 
   /// The glTF sampler of [textureIndex] as Flutter GPU sampler options, so

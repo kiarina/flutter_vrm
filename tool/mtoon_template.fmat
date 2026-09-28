@@ -1,7 +1,10 @@
 // MToon 1.0 (VRMC_materials_mtoon) as a flutter_scene .fmat material.
 //
 // Template for tool/generate_mtoon.dart, which writes one variant per
-// blending / culling / depth-write combination into assets/materials/.
+// blending / culling / depth-write combination into assets/materials/, plus
+// the outline variants: the same surface drawn again with front faces culled
+// and the vertices pushed out along their normals (an inverted hull), which
+// set is_outline and add the {{VERTEX}} block.
 // Edit this file, not the generated ones.
 //
 // flutter_scene's unlit .fmat materials cannot read the scene's lights yet
@@ -32,6 +35,10 @@ material {
     { type: vec3, name: emissive_factor, default: [0, 0, 0] },
     { type: sampler2d, name: emissive_texture, hint: default_white },
 
+    // glTF normalTexture; normal_scale 0 means the material has none.
+    { type: sampler2d, name: normal_texture, hint: default_white },
+    { type: float, name: normal_scale, default: 0 },
+
     { type: vec3, name: matcap_factor, default: [1, 1, 1] },
     { type: sampler2d, name: matcap_texture, hint: default_black },
     { type: vec3, name: parametric_rim_color_factor, default: [0, 0, 0] },
@@ -49,6 +56,24 @@ material {
     { type: float, name: uv_animation_rotation_speed_factor, default: 0 },
     { type: float, name: time, default: 0 },
 
+    // Outline. Only the outline variants read the width inputs.
+    { type: int, name: is_outline, default: 0 },
+    // 1 worldCoordinates (meters), 2 screenCoordinates (share of the
+    // screen height)
+    { type: int, name: outline_width_mode, default: 0 },
+    { type: float, name: outline_width_factor, default: 0 },
+    // Declared samplers are fragment-only, so the width texture cannot scale
+    // the hull per vertex; the outline pass discards where it is 0 instead
+    // (VRoid uses it as a mask, e.g. to keep only the jaw line of the face).
+    { type: sampler2d, name: outline_width_multiply_texture, hint: default_white },
+    // 1 when the width texture is set (placeholders are not trusted; see
+    // matcap_factor in mtoon.dart).
+    { type: int, name: has_outline_width_texture, default: 0 },
+    { type: vec3, name: outline_color_factor, default: [0, 0, 0] },
+    { type: float, name: outline_lighting_mix_factor, default: 1 },
+    // 2 * tan(vertical fov / 2): the screen height at distance 1.
+    { type: float, name: outline_screen_scale, default: 0.828 },
+
     // Lighting, written every frame.
     { type: vec3, name: light_direction, default: [0.3, 0.8, 0.5] },
     { type: vec3, name: light_color, default: [1, 1, 1] },
@@ -56,7 +81,7 @@ material {
     { type: vec3, name: gi_ground_color, default: [0.2, 0.19, 0.18] },
   ],
 }
-
+{{VERTEX}}
 fragment {
   float MToonLinearStep(float a, float b, float t) {
     return clamp((t - a) / max(b - a, 1e-5), 0.0, 1.0);
@@ -94,9 +119,16 @@ fragment {
 
     vec3 v = normalize(GetViewDirection());
     vec3 n = normalize(GetWorldNormal());
-    // Two-sided surfaces shade their back faces with the flipped normal.
+    // Two-sided surfaces (and the outline hull) shade their back faces with
+    // the flipped normal.
     if (dot(n, v) < 0.0) {
       n = -n;
+    }
+    if (material_params.normal_scale != 0.0) {
+      // PerturbNormal builds the tangent frame from screen-space derivatives
+      // of the (unnormalized) view vector, which only its derivative needs.
+      n = PerturbNormal(normal_texture, n, -GetWorldPosition(), uv,
+                        material_params.normal_scale);
     }
     vec3 l = normalize(material_params.light_direction);
 
@@ -119,6 +151,18 @@ fragment {
         (material_params.gi_sky_color + material_params.gi_ground_color) * 0.5;
     vec3 gi = mix(gi_n, gi_uniform, material_params.gi_equalization_factor);
     color += gi * base.rgb;
+    if (material_params.is_outline == 1) {
+      if (material_params.has_outline_width_texture == 1 &&
+          texture(outline_width_multiply_texture, uv).g < 0.004) {
+        discard;
+      }
+      material.base_color = vec4(
+          material_params.outline_color_factor *
+              mix(vec3(1.0), color, material_params.outline_lighting_mix_factor),
+          alpha);
+      PrepareMaterial(material);
+      return;
+    }
 
     color += material_params.emissive_factor *
              SRGBToLinear(texture(emissive_texture, uv).rgb);

@@ -29,16 +29,19 @@ flutter_vrm は同じバイト列からその拡張を読み、読み込まれ�
   テクスチャの UV の変換
 - **視線**: `bone`（目の骨を回す）と `expression`（lookUp/Down/Left/Right を動かす）の両方。モデルの range map に従う
 - **MToon**: `VRMC_materials_mtoon` の材質を MToon 1.0 のシェーダーで描く（影色、影の位置と境界のぼかし、発光、matcap、
-  リム、UV アニメーション、アルファのモード、両面）。コンパイル済みでパッケージに含まれ、アプリ側のビルドの手順は要らない
+  リム、UV アニメーション、アルファのモード、両面、法線マップ、輪郭線）。コンパイル済みでパッケージに含まれ、アプリ側のビルドの手順は要らない
 - **自動まばたき**
 - **描画に依存しないパーサー**: `package:flutter_vrm/vrm_schema.dart` は flutter_scene を使わずに GLB と VRM 1.0 を読む
 
-まだ無いもの: MToon の輪郭線・法線マップ・描画順（render queue）、SpringBone、ノードの拘束、VRM Animation（`.vrma`）、
-一人称の設定、VRM 0.x のファイル。
+まだ無いもの: SpringBone、ノードの拘束、VRM Animation（`.vrma`）、一人称の設定、VRM 0.x のファイル。
+MToon の描画順（render queue の offset）は無視します（flutter_scene は半透明の面を深度で並べ替える）。
 
 MToon の光はシーンではなく `avatar.mtoonLighting` から読みます。flutter_scene の独自材質がまだシーンの光を読めないためです。
 シーンの平行光源に合わせるには、毎フレーム `avatar.mtoonLighting.fromScene(scene)` を呼びます。環境光は環境マップではなく
 空と地面の 2 色（`skyColor`、`groundColor`）で近似し、MToon の面には影（シャドウマップ）が落ちません。
+輪郭線は裏返した殻として描きます。flutter_scene の独自材質は頂点の段階でテクスチャを読めないため、輪郭線の太さのテクスチャは
+マスクとして働きます（太さは係数どおりか 0 のどちらか）。画面の比率で太さを決める輪郭線がカメラの画角に従うよう、
+`avatar.update(dt, camera: camera)` にカメラを渡します。
 
 ## Quick Start
 
@@ -75,7 +78,7 @@ avatar.expressions.setPreset(VrmExpressionPreset.happy, 0.8);
 avatar.lookAt.target = camera.position;
 
 // 毎フレーム（SceneView の onTick など）
-avatar.update(deltaSeconds);
+avatar.update(deltaSeconds, camera: camera);
 ```
 
 アバターを動かす・向きを変えるときは `avatar.root` を変えます。モデルは自分の空間で +Z を向いており、flutter_scene のシーンでは -Z を向きます。

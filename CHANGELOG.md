@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - `VrmAvatar.fromImported` is now asynchronous (it builds MToon materials).
+- `VrmAvatar.update` takes the drawing `camera` (optional) for screen-space outline widths.
 
 ### Added
 
@@ -34,4 +35,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   sampler's wrap and filter modes.
 - `VrmMaterialHandle`: material color and UV binds now drive MToon parameters as well as
   flutter_scene's standard materials.
+- MToon outlines (inverted hull, world and screen coordinate widths, the width texture as a
+  mask, `outlineColor` binds), normal maps, and `VrmAvatar.mtoonOutlineCount`.
 - Example viewer app and `mise run fetch-samples`.

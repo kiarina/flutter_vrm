@@ -67,6 +67,10 @@ class VrmAvatar {
   /// How many of the model's materials render as MToon.
   int get mtoonMaterialCount => _mtoonMaterials.length;
 
+  /// How many of those also draw an outline.
+  int get mtoonOutlineCount =>
+      _mtoonMaterials.where((m) => m.outlineMaterial != null).length;
+
   VrmMeta get meta => document.meta;
 
   /// Loads a `.vrm` file.
@@ -136,11 +140,21 @@ class VrmAvatar {
         '($mtoonError)',
       );
     }
+    // The mesh each primitive belongs to, for adding outline hulls.
+    final owners = <MeshPrimitive, Mesh>{
+      for (final node in nodes)
+        if (node?.mesh case final mesh?)
+          for (final p in mesh.primitives) p: mesh,
+    };
     for (final e in primitives.entries) {
       final h = mtoonError == null ? created[e.key] : null;
       if (h != null) {
         for (final p in e.value) {
           p.material = h.material;
+          final outline = h.outlineMaterial;
+          if (outline != null) {
+            owners[p]?.primitives.add(MeshPrimitive(p.geometry, outline));
+          }
         }
         handles[e.key] = [h];
         mtoonHandles.add(h);
@@ -174,10 +188,17 @@ class VrmAvatar {
   ///
   /// Order: humanoid pose, look-at (which reads the posed head and may set
   /// eye rotations or look expressions), then expressions.
-  void update(double deltaSeconds) {
+  ///
+  /// Pass the [camera] that draws the avatar so MToon outlines sized in
+  /// screen coordinates follow its field of view.
+  void update(double deltaSeconds, {Camera? camera}) {
     _time += deltaSeconds;
+    final fovY = camera is PerspectiveCamera
+        ? camera.fovRadiansY
+        : 45 * math.pi / 180;
+    final screenScale = 2 * math.tan(fovY / 2);
     for (final m in _mtoonMaterials) {
-      m.updateFrame(mtoonLighting, _time);
+      m.updateFrame(mtoonLighting, _time, screenScale: screenScale);
     }
     humanoid.apply();
     lookAt.update();

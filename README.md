@@ -34,19 +34,25 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   the model's range maps
 - **MToon**: `VRMC_materials_mtoon` materials render with an MToon 1.0 shader (shade color,
   shading shift and toony, emission, matcap, parametric rim, UV animation, alpha modes,
-  double-sided). It ships compiled with the package; apps need no extra build step
+  double-sided, normal maps, and outlines). It ships compiled with the package; apps need no
+  extra build step
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene
 
-Not yet: MToon outlines, normal maps, and render queue offsets; SpringBone; node constraints;
-VRM Animation (`.vrma`); first-person settings; and VRM 0.x files.
+Not yet: SpringBone; node constraints; VRM Animation (`.vrma`); first-person settings; and
+VRM 0.x files. MToon's render queue offsets are ignored (flutter_scene sorts translucent
+surfaces by depth).
 
 MToon reads its light from `avatar.mtoonLighting` rather than the scene, because flutter_scene's
 custom materials cannot read scene lights yet. Call `avatar.mtoonLighting.fromScene(scene)`
 each frame to follow the scene's directional light. Global illumination is a sky / ground
 ambient pair (`skyColor`, `groundColor`) instead of the environment map, and MToon surfaces do
-not receive shadow maps.
+not receive shadow maps. Outlines are drawn as an inverted hull; the outline width texture
+works as a mask (width is either the full factor or none), because flutter_scene's custom
+materials can sample textures only in the fragment stage. Pass the camera to
+`avatar.update(dt, camera: camera)` so outlines sized in screen coordinates follow its field
+of view.
 
 ## Quick Start
 
@@ -84,7 +90,7 @@ avatar.expressions.setPreset(VrmExpressionPreset.happy, 0.8);
 avatar.lookAt.target = camera.position;
 
 // Every frame (for example in SceneView's onTick):
-avatar.update(deltaSeconds);
+avatar.update(deltaSeconds, camera: camera);
 ```
 
 Move or turn the avatar through `avatar.root`. The model faces +Z in its own space, which

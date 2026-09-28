@@ -169,7 +169,8 @@ class _ViewerPageState extends State<ViewerPage> {
         status =
             '${next.meta.name} · loaded in ${sw.elapsedMilliseconds} ms · '
             '${next.document.expressions.length} expressions · '
-            '${next.mtoonMaterialCount} MToon · '
+            '${next.mtoonMaterialCount} MToon '
+            '(${next.mtoonOutlineCount} outlined) · '
             'AA ${scene.effectiveAntiAliasingMode.name} · '
             'look-at ${next.document.lookAt?.type ?? 'none'}';
       });
@@ -225,7 +226,7 @@ class _ViewerPageState extends State<ViewerPage> {
           ),
         );
       }
-      a.update(dt);
+      a.update(dt, camera: camera);
     }
   }
 

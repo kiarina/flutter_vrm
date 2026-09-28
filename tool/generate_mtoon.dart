@@ -7,20 +7,36 @@
 // picks one per glTF material.
 import 'dart:io';
 
-const variants = <(String, String, String, bool)>[
-  // (file stem, blending, culling, depth write)
-  ('mtoon_opaque', 'opaque', 'back', false),
-  ('mtoon_opaque_double', 'opaque', 'none', false),
-  ('mtoon_blend', 'alpha', 'back', false),
-  ('mtoon_blend_double', 'alpha', 'none', false),
-  ('mtoon_blend_zwrite', 'alpha', 'back', true),
-  ('mtoon_blend_zwrite_double', 'alpha', 'none', true),
+const variants = <(String, String, String, bool, bool)>[
+  // (file stem, blending, culling, depth write, outline)
+  ('mtoon_opaque', 'opaque', 'back', false, false),
+  ('mtoon_opaque_double', 'opaque', 'none', false, false),
+  ('mtoon_blend', 'alpha', 'back', false, false),
+  ('mtoon_blend_double', 'alpha', 'none', false, false),
+  ('mtoon_blend_zwrite', 'alpha', 'back', true, false),
+  ('mtoon_blend_zwrite_double', 'alpha', 'none', true, false),
+  ('mtoon_outline', 'opaque', 'front', false, true),
+  ('mtoon_outline_blend', 'alpha', 'front', false, true),
 ];
+
+// Pushes the hull out along the normal.
+const outlineVertex = '''
+vertex {
+  void Vertex(inout VertexInputs vertex) {
+    float width = material_params.outline_width_factor;
+    if (material_params.outline_width_mode == 2) {
+      width *= distance(vertex.world_position, vertex.camera_position) *
+               material_params.outline_screen_scale;
+    }
+    vertex.world_position += normalize(vertex.world_normal) * width;
+  }
+}
+''';
 
 void main() {
   final template = File('tool/mtoon_template.fmat').readAsStringSync();
   Directory('assets/materials').createSync(recursive: true);
-  for (final (stem, blending, culling, zwrite) in variants) {
+  for (final (stem, blending, culling, zwrite, outline) in variants) {
     final name = stem
         .split('_')
         .map((w) => w[0].toUpperCase() + w.substring(1))
@@ -34,7 +50,8 @@ void main() {
         .replaceAll('{{NAME}}', 'Vrm$name')
         .replaceAll('{{BLENDING}}', blending)
         .replaceAll('{{CULLING}}', culling)
-        .replaceAll('{{DEPTH_WRITE}}', zwrite ? '\n  depth_write: true,' : '');
+        .replaceAll('{{DEPTH_WRITE}}', zwrite ? '\n  depth_write: true,' : '')
+        .replaceAll('{{VERTEX}}', outline ? outlineVertex : '');
     File('assets/materials/$stem.fmat').writeAsStringSync(out);
     stdout.writeln('assets/materials/$stem.fmat');
   }
