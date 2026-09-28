@@ -8,7 +8,7 @@
 VRM 1.0 avatars for Flutter, rendered by [flutter_scene](https://pub.dev/packages/flutter_scene)
 (Flutter GPU / Impeller, with a WebGL2 backend on the web).
 
-![Two VRM 1.0 sample avatars in the example app: one waving with an open mouth, one seated with a happy face](doc/images/hero.jpg)
+![Two VRM 1.0 sample avatars in the example app with MToon: one waving with an open mouth, one seated with a happy face](doc/images/hero.jpg)
 
 ## Summary
 

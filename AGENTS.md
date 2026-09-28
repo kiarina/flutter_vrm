@@ -27,7 +27,8 @@
 - NodeConstraint は three-vrm と同じ式（roll・rotation はローカルの回転、aim は親の回転をモデル空間で）。source やその祖先を
   別の拘束が動かすなら、そちらを先に評価する。確認は `test/runtime/node_constraint_test.dart` と Twist サンプルの袖・短パン
 - 当たり判定は humanoid の骨に沿ったカプセル（`VrmHitShapes`）で行う。flutter_scene の `Scene.raycast` は skinned mesh を休止姿勢で
-  判定するので、アバターのメッシュには使わない。太さはモデルの hips の高さ（0.85 m を基準）で比例させる。確認は
+  判定するので、アバターのメッシュには使わない。太さはモデルの hips の高さ（0.85 m を基準）で比例させる。頭だけは頭の骨から
+  メッシュの上端まで（glTF の POSITION の min / max から。skinned mesh の `Geometry.localBounds` は空）で、頭の大きいモデルも覆う。確認は
   `test/runtime/hit_test_test.dart` と example の `HITS=true`（タップで部位が出る）
 - VRMA は読み込み時に仕様の「NormalizedLocalRotation」（P·local·W⁻¹）へ直す。これは `VrmHumanoidRig` の正規化した回転と同じ
   空間なので、プレイヤーは `setNormalizedRotation` に渡すだけ。四元数の積は自前の Hamilton 積で書く（vector_math の演算子に
