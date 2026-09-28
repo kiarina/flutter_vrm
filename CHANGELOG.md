@@ -48,5 +48,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   rotations, the hips position, expression, and look-at tracks (linear, step, and cubic
   spline); `VrmAnimationPlayer` plays it on an avatar. `VrmHumanoidRig.setHipsPosition`,
   `restModelPosition`, and `VrmHumanBone.parent`.
+- Hit testing: `VrmAvatar.hitTest`, `VrmAvatar.hitTestAll`, and `VrmAvatar.contains`, with
+  body-part capsules (`VrmHitShapes`) that follow the posed humanoid bones, and optionally the
+  spring bone colliders.
 - Example viewer app and `mise run fetch-samples`. The example's `turn` pose swings the hips
-  to show spring bones; `.vrma` assets play from the pose chips.
+  to show spring bones; `.vrma` assets play from the pose chips; taps report the body part,
+  and `HITS=true` (or the switch) draws the hit capsules.

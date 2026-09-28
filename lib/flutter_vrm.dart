@@ -5,6 +5,7 @@
 library;
 
 export 'src/runtime/expression_manager.dart' show VrmExpressionManager;
+export 'src/runtime/hit_test.dart' show VrmHit, VrmHitCapsule, VrmHitShapes;
 export 'src/runtime/humanoid_rig.dart' show VrmHumanoidRig;
 export 'src/runtime/look_at.dart' show VrmLookAt;
 export 'src/runtime/material_handles.dart'

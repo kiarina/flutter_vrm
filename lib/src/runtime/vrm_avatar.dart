@@ -2,11 +2,13 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:vector_math/vector_math.dart' show Ray;
 
 import '../schema/glb.dart';
 import '../schema/vrm_document.dart';
 import 'expression_manager.dart';
 import 'gltf_mapping.dart';
+import 'hit_test.dart';
 import 'humanoid_rig.dart';
 import 'look_at.dart';
 import 'material_handles.dart';
@@ -40,6 +42,7 @@ class VrmAvatar {
     required this.lookAt,
     required this.constraints,
     required this.springBones,
+    required this.hitShapes,
     required List<VrmMToonMaterialHandle> mtoonMaterials,
   }) : _mtoonMaterials = mtoonMaterials;
 
@@ -60,6 +63,9 @@ class VrmAvatar {
 
   /// `VRMC_node_constraint` helper nodes (twist bones and the like).
   final VrmNodeConstraints constraints;
+
+  /// The body-part capsules [hitTest] uses (adjust radii or disable parts).
+  final VrmHitShapes hitShapes;
 
   /// The swaying chains (hair, clothes) of `VRMC_springBone`.
   final VrmSpringBoneSystem springBones;
@@ -203,9 +209,56 @@ class VrmAvatar {
         nodes,
         imported,
       ),
+      hitShapes: VrmHitShapes(
+        humanoid,
+        imported,
+        springBone: document.springBone,
+        gltfNodes: nodes,
+      ),
       springBones: VrmSpringBoneSystem(document.springBone, nodes, imported),
       mtoonMaterials: mtoonHandles,
     );
+  }
+
+  /// Where [ray] (world space, for example from
+  /// `camera.screenPointToRay`) first hits this avatar, or null.
+  ///
+  /// The avatar is tested with capsules that follow its posed humanoid bones
+  /// (head, torso, arms, hands, legs, feet), so a sitting or lying avatar is
+  /// hit where it is drawn; [VrmHit.bone] tells which part. With
+  /// [springColliders], the model's spring bone colliders count too. Long
+  /// hair, skirts, and loose clothes outside the capsules are not hit.
+  ///
+  /// Scene objects in front of the avatar are not considered; compare
+  /// [VrmHit.distance] with `Scene.raycast` to let furniture block it.
+  VrmHit? hitTest(Ray ray, {bool springColliders = false}) =>
+      hitShapes.hitTest(ray, springColliders: springColliders);
+
+  /// Whether [node] belongs to this avatar (for example, to leave the
+  /// avatar out of `Scene.raycast(ray, where: (n) => !avatar.contains(n))`,
+  /// which would test its meshes in the T-pose).
+  bool contains(Node node) {
+    for (Node? n = node; n != null; n = n.parent) {
+      if (identical(n, root)) return true;
+    }
+    return false;
+  }
+
+  /// The nearest hit of [ray] among [avatars], with the avatar it hit.
+  static (VrmAvatar, VrmHit)? hitTestAll(
+    Iterable<VrmAvatar> avatars,
+    Ray ray, {
+    bool springColliders = false,
+  }) {
+    (VrmAvatar, VrmHit)? nearest;
+    for (final a in avatars) {
+      final hit = a.hitTest(ray, springColliders: springColliders);
+      if (hit != null &&
+          (nearest == null || hit.distance < nearest.$2.distance)) {
+        nearest = (a, hit);
+      }
+    }
+    return nearest;
   }
 
   /// Applies the pose, look-at, and expressions for this frame.

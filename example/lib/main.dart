@@ -38,6 +38,9 @@ const String kAntiAliasing = String.fromEnvironment('AA', defaultValue: 'auto');
 /// `false` renders with the imported glTF materials instead of MToon.
 const bool kMToon = bool.fromEnvironment('MTOON', defaultValue: true);
 
+/// Draws the avatar's hit capsules (`HITS=true`).
+const bool kShowHits = bool.fromEnvironment('HITS');
+
 /// Loads the initial model this many times and lists every load's time
 /// (to tell a slow first load from slow loads).
 const int kLoads = int.fromEnvironment('LOADS', defaultValue: 1);
@@ -77,6 +80,19 @@ class _ViewerPageState extends State<ViewerPage> {
   List<String> animations = [];
   final Map<String, VrmAnimation> _animationCache = {};
   VrmAnimationPlayer? player;
+
+  /// Hit testing: what the last tap hit, the marker at the hit point, and
+  /// the translucent spheres drawn along the hit capsules.
+  bool showHitShapes = kShowHits;
+  String tapped = '';
+  final Node _hitDebug = Node(name: 'hit debug');
+  final Node _tapMarker = Node(
+    name: 'tap marker',
+    mesh: Mesh(
+      SphereGeometry(radius: 1, segments: 12),
+      UnlitMaterial()..baseColorFactor = vm.Vector4(1, 0.2, 0.3, 1),
+    ),
+  )..visible = false;
   String? current;
   VrmAvatar? avatar;
   String status = 'initializing';
@@ -123,6 +139,9 @@ class _ViewerPageState extends State<ViewerPage> {
         localTransform: vm.Matrix4.translation(vm.Vector3(0, -0.01, 0)),
       ),
     );
+    scene
+      ..add(_hitDebug)
+      ..add(_tapMarker);
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     models =
         manifest
@@ -299,6 +318,69 @@ class _ViewerPageState extends State<ViewerPage> {
       }
       player?.update(dt);
       a.update(dt, camera: camera);
+      _drawHitShapes(a);
+    }
+  }
+
+  /// Taps pick a body part: the avatar's capsules against the rest of the
+  /// scene (the floor), leaving the avatar's own T-pose meshes out.
+  void _onTap(Offset position, Size size) {
+    final a = avatar;
+    if (a == null) return;
+    final ray = camera.screenPointToRay(position, size);
+    final hit = a.hitTest(ray, springColliders: true);
+    final blocker = scene.raycast(
+      ray,
+      where: (n) =>
+          !a.contains(n) &&
+          !identical(n, _tapMarker) &&
+          !identical(n.parent, _hitDebug),
+    );
+    setState(() {
+      if (hit != null && (blocker == null || hit.distance < blocker.distance)) {
+        tapped =
+            '${hit.bone?.name ?? hit.node?.name ?? 'collider'} '
+            '(${hit.distance.toStringAsFixed(2)} m)';
+        _tapMarker
+          ..localTransform = (vm.Matrix4.translation(hit.point)
+            ..scaleByDouble(0.015, 0.015, 0.015, 1))
+          ..visible = true;
+      } else {
+        tapped = blocker == null ? 'nothing' : 'the scene';
+        _tapMarker.visible = false;
+      }
+    });
+  }
+
+  static final UnlitMaterial _hitMaterial = UnlitMaterial()
+    ..baseColorFactor = vm.Vector4(0.2, 0.6, 1, 0.35)
+    ..alphaMode = AlphaMode.blend;
+
+  /// Five spheres along each enabled capsule, re-placed every frame.
+  void _drawHitShapes(VrmAvatar a) {
+    _hitDebug.visible = showHitShapes;
+    if (!showHitShapes) return;
+    final capsules = a.hitShapes.capsules;
+    while (_hitDebug.children.length < capsules.length * 5) {
+      _hitDebug.add(
+        Node(mesh: Mesh(SphereGeometry(radius: 1, segments: 12), _hitMaterial)),
+      );
+    }
+    final scale = a.root.globalTransform.getMaxScaleOnAxis();
+    for (var i = 0; i < _hitDebug.children.length; i++) {
+      final sphere = _hitDebug.children[i];
+      final c = i ~/ 5 < capsules.length ? capsules[i ~/ 5] : null;
+      final ends = c != null && c.enabled ? c.worldSegment() : null;
+      if (c == null || ends == null) {
+        sphere.visible = false;
+        continue;
+      }
+      final r = c.radius * scale;
+      final p = ends.$1 + (ends.$2 - ends.$1) * ((i % 5) / 4);
+      sphere
+        ..visible = true
+        ..localTransform = (vm.Matrix4.translation(p)
+          ..scaleByDouble(r, r, r, 1));
     }
   }
 
@@ -312,6 +394,8 @@ class _ViewerPageState extends State<ViewerPage> {
       animations: animations,
       lookAtCamera: lookAtCamera,
       showMeta: showMeta,
+      showHitShapes: showHitShapes,
+      onHitShapes: (v) => setState(() => showHitShapes = v),
       onPose: (p) => setState(() {
         pose = p;
         _applyPose();
@@ -337,6 +421,11 @@ class _ViewerPageState extends State<ViewerPage> {
                       animations: animations,
                       lookAtCamera: lookAtCamera,
                       showMeta: showMeta,
+                      showHitShapes: showHitShapes,
+                      onHitShapes: (v) {
+                        setState(() => showHitShapes = v);
+                        setSheet(() {});
+                      },
                       onPose: (p) {
                         setState(() {
                           pose = p;
@@ -379,26 +468,38 @@ class _ViewerPageState extends State<ViewerPage> {
                         );
                       }
                     },
-                    child: GestureDetector(
-                      onScaleStart: (_) => _lastScale = 1,
-                      onScaleUpdate: (d) {
-                        yaw -= d.focalPointDelta.dx * 0.01;
-                        pitch = (pitch + d.focalPointDelta.dy * 0.006).clamp(
-                          -1.2,
-                          1.4,
-                        );
-                        if (d.pointerCount >= 2 || d.scale != 1) {
-                          distance = (distance / (d.scale / _lastScale)).clamp(
-                            0.4,
-                            8.0,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => GestureDetector(
+                        onTapUp: (d) =>
+                            _onTap(d.localPosition, constraints.biggest),
+                        onScaleStart: (_) => _lastScale = 1,
+                        onScaleUpdate: (d) {
+                          yaw -= d.focalPointDelta.dx * 0.01;
+                          pitch = (pitch + d.focalPointDelta.dy * 0.006).clamp(
+                            -1.2,
+                            1.4,
                           );
-                          _lastScale = d.scale;
-                        }
-                      },
-                      child: SceneView(scene, camera: camera, onTick: _onTick),
+                          if (d.pointerCount >= 2 || d.scale != 1) {
+                            distance = (distance / (d.scale / _lastScale))
+                                .clamp(0.4, 8.0);
+                            _lastScale = d.scale;
+                          }
+                        },
+                        child: SceneView(
+                          scene,
+                          camera: camera,
+                          onTick: _onTick,
+                        ),
+                      ),
                     ),
                   ),
                 ),
+                if (tapped.isNotEmpty)
+                  Positioned(
+                    left: 12,
+                    bottom: 12 + MediaQuery.paddingOf(context).bottom,
+                    child: Chip(label: Text('Tapped: $tapped')),
+                  ),
                 Positioned(
                   left: 12,
                   top: MediaQuery.paddingOf(context).top + 12,
@@ -476,6 +577,8 @@ class _Controls extends StatelessWidget {
     required this.animations,
     required this.lookAtCamera,
     required this.showMeta,
+    required this.showHitShapes,
+    required this.onHitShapes,
     required this.onPose,
     required this.onLookAt,
     required this.onMeta,
@@ -486,6 +589,8 @@ class _Controls extends StatelessWidget {
   final String pose;
   final bool lookAtCamera;
   final bool showMeta;
+  final bool showHitShapes;
+  final ValueChanged<bool> onHitShapes;
   final ValueChanged<String> onPose;
 
   /// `.vrma` assets, shown as extra pose chips.
@@ -555,6 +660,12 @@ class _Controls extends StatelessWidget {
               avatar.springBones.reset();
               onChanged();
             },
+          ),
+          SwitchListTile(
+            dense: true,
+            title: const Text('Hit shapes (tap to test)'),
+            value: showHitShapes,
+            onChanged: onHitShapes,
           ),
           SwitchListTile(
             dense: true,

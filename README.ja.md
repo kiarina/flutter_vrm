@@ -35,6 +35,8 @@ flutter_vrm は同じバイト列からその拡張を読み、読み込まれ�
 - **ノードの拘束**: `VRMC_node_constraint` の roll・aim・rotation（ねじれの補助骨、腕に付いてくる袖など）
 - **VRM Animation**: `.vrma` を任意の VRM 1.0 のモデルで再生する（`VrmAnimation`、`VrmAnimationPlayer`）。humanoid の回転
   （正規化した回転で移し替え、モデルに無い骨は子へ畳み込む）、モデルの大きさに合わせた hips の移動、表情、視線
+- **当たり判定**: `avatar.hitTest(ray)` で、タップがどの部位に当たったかが分かる。humanoid の骨に沿ったカプセルが姿勢に付いてくるので、
+  座っていても寝ていても見た目どおりの場所で当たる
 - **自動まばたき**
 - **描画に依存しないパーサー**: `package:flutter_vrm/vrm_schema.dart` は flutter_scene を使わずに GLB と VRM 1.0 を読む
 
@@ -86,6 +88,24 @@ avatar.lookAt.target = camera.position;
 avatar.update(deltaSeconds, camera: camera);
 ```
 
+タップが何に当たったかは、画面の位置をレイに変えてアバターに当てます。アバターは姿勢に付いてくるカプセル（頭・胴・腕・手・脚・足）で
+判定するので、カプセルの外にはみ出す長い髪やスカートには当たりません。flutter_scene の `Scene.raycast` は骨入りのメッシュを
+T ポーズのまま判定するので、アバターは外し、手前にある物に遮られるかどうかだけに使います。
+
+```dart
+onTapUp: (details) {
+  final ray = camera.screenPointToRay(details.localPosition, viewSize);
+  final hit = avatar.hitTest(ray); // 複数なら VrmAvatar.hitTestAll(avatars, ray)
+  final blocker = scene.raycast(ray, where: (n) => !avatar.contains(n));
+  if (hit != null && (blocker == null || hit.distance < blocker.distance)) {
+    print('tapped ${hit.bone?.name} at ${hit.point}');
+  }
+},
+```
+
+部位ごとの太さや判定の有無は `avatar.hitShapes.capsules`（`radius`、`enabled`）で変えられます。`springColliders: true` を渡すと、
+モデルの SpringBone のコライダーも判定に加えます。
+
 VRM Animation を再生するときは、毎フレーム、アバターより先にプレイヤーを進めます。
 
 ```dart
@@ -126,7 +146,7 @@ dependency_overrides:
 ## Example
 
 `example/` はビューアです。モデルを選び、カメラを回し、ポーズ・VRM Animation・表情のスライダーを試し、視線・まばたき・
-揺れものを切り替え、モデルのライセンスを確かめられます。
+揺れものを切り替え、部位をタップして当たり判定を試し（カプセルも描ける）、モデルのライセンスを確かめられます。
 
 ```sh
 mise run fetch-samples      # サンプルのモデルとアニメーションをダウンロードする

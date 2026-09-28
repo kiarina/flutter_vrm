@@ -46,6 +46,8 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   model: humanoid rotations (retargeted through normalized rotations, bones the model lacks
   folded into their children), the hips translation scaled to the model, expressions, and
   look-at
+- **Hit testing**: `avatar.hitTest(ray)` tells which body part a tap hit, with capsules that
+  follow the posed humanoid bones (a sitting or lying avatar is hit where it is drawn)
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene
@@ -102,6 +104,25 @@ avatar.lookAt.target = camera.position;
 avatar.update(deltaSeconds, camera: camera);
 ```
 
+To find what a tap hit, turn it into a ray and test the avatar. The avatar is tested with
+capsules that follow its pose (head, torso, arms, hands, legs, feet); long hair and skirts
+outside them are not hit. flutter_scene's own `Scene.raycast` tests skinned meshes in the
+T-pose, so leave the avatar out of it and use it only for what may stand in front:
+
+```dart
+onTapUp: (details) {
+  final ray = camera.screenPointToRay(details.localPosition, viewSize);
+  final hit = avatar.hitTest(ray); // or VrmAvatar.hitTestAll(avatars, ray)
+  final blocker = scene.raycast(ray, where: (n) => !avatar.contains(n));
+  if (hit != null && (blocker == null || hit.distance < blocker.distance)) {
+    print('tapped ${hit.bone?.name} at ${hit.point}');
+  }
+},
+```
+
+Adjust or disable parts through `avatar.hitShapes.capsules` (`radius`, `enabled`), and pass
+`springColliders: true` to also test the model's spring bone colliders.
+
 To play a VRM Animation, step a player before the avatar each frame:
 
 ```dart
@@ -144,8 +165,8 @@ dependency_overrides:
 ## Example
 
 `example/` is a viewer: pick a model, orbit the camera, try poses, VRM Animations, and
-expression sliders, toggle look-at, blinking, and spring bones, and read the model's
-license.
+expression sliders, toggle look-at, blinking, and spring bones, tap body parts (with the hit
+capsules drawn), and read the model's license.
 
 ```sh
 mise run fetch-samples      # downloads the sample models and animation
