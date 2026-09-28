@@ -52,7 +52,10 @@
 - 骨や視線の計算は、軸がそろっていない休止姿勢のリグ（`test/runtime/runtime_test.dart` の `chainVrm`）で確かめる
 - 見た目の確認は example で行う。`--dart-define` の `MODEL`・`POSE`・`EXPRESSIONS`（例 `happy=1,aa=0.5`）・`YAW`・
   `FRAMING=face`・`FOCUS_OFFSET`・`AA`（`msaa` など）・`MTOON=false` で、操作せずに同じ画面を再現できる。
-  `EXPRESSIONS` に `blink` を入れると自動まばたきが止まる
+  `EXPRESSIONS` に `blink` を入れると自動まばたきが止まる。`POSE=turn` は腰を左右にひねって揺れものを見せ、`POSE=test.vrma` のように
+  `.vrma` のファイル名を渡すと VRM Animation を再生する
+- 読み込み時間は `LOADS=4` で同じモデルを 4 回読み、「flutter_scene の読み込み + flutter_vrm」の内訳を並べる。1 回目だけ遅いときは、
+  初めて描くフレームの準備を待たされていることがある（Windows で 25 秒）
 - iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
 
 ## VRM のファイル
