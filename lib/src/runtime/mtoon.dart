@@ -115,16 +115,65 @@ class VrmMToonMaterialHandle implements VrmMaterialHandle {
 /// `VRMC_materials_mtoon`, reusing textures the importer already uploaded
 /// where it can and decoding the MToon-only ones from the file.
 class VrmMToonFactory {
-  VrmMToonFactory(this.gltf, this.binary);
+  /// [imported] maps glTF material indices to what the importer made for
+  /// them; every texture it already uploaded is reused (by glTF image), so
+  /// MToon decodes and uploads only the images no glTF material uses.
+  VrmMToonFactory(
+    this.gltf,
+    this.binary, {
+    Map<int, Material?> imported = const {},
+  }) {
+    final materials = (gltf['materials'] as List? ?? const [])
+        .cast<Map<String, dynamic>>();
+    void register(Map<String, dynamic>? info, TextureSource? source) {
+      final index = info?['index'] as int?;
+      final image = index == null ? null : _imageOf(index);
+      if (image != null && source != null) {
+        _importedImages.putIfAbsent(image, () => source);
+      }
+    }
+
+    for (final e in imported.entries) {
+      if (e.key < 0 || e.key >= materials.length) continue;
+      final m = materials[e.key];
+      final pbr = m['pbrMetallicRoughness'] as Map<String, dynamic>?;
+      final base = pbr?['baseColorTexture'] as Map<String, dynamic>?;
+      switch (e.value) {
+        case final PhysicallyBasedMaterial p:
+          register(base, p.baseColorTexture);
+          register(
+            pbr?['metallicRoughnessTexture'] as Map<String, dynamic>?,
+            p.metallicRoughnessTexture,
+          );
+          register(
+            m['normalTexture'] as Map<String, dynamic>?,
+            p.normalTexture,
+          );
+          register(
+            m['emissiveTexture'] as Map<String, dynamic>?,
+            p.emissiveTexture,
+          );
+          register(
+            m['occlusionTexture'] as Map<String, dynamic>?,
+            p.occlusionTexture,
+          );
+        case final UnlitMaterial u:
+          register(base, u.baseColorTexture);
+        default:
+      }
+    }
+  }
 
   final Map<String, dynamic> gltf;
   final Uint8List? binary;
   final Map<int, Future<Texture2D?>> _images = {};
 
+  /// glTF image index -> the texture the importer uploaded for it.
+  final Map<int, TextureSource> _importedImages = {};
+
   /// Returns a handle for glTF material [index], or null when it is not an
-  /// MToon material. [imported] is what the importer made for it (its
-  /// textures are reused).
-  Future<VrmMToonMaterialHandle?> create(int index, Material? imported) async {
+  /// MToon material.
+  Future<VrmMToonMaterialHandle?> create(int index) async {
     final materials = (gltf['materials'] as List? ?? const [])
         .cast<Map<String, dynamic>>();
     if (index < 0 || index >= materials.length) return null;
@@ -179,7 +228,7 @@ class VrmMToonFactory {
       );
     }
     for (final target in handle._all) {
-      await _configure(target, m, ext, mtoon, imported, alphaMode);
+      await _configure(target, m, ext, mtoon, alphaMode);
     }
     final pbr = m['pbrMetallicRoughness'] as Map<String, dynamic>? ?? const {};
     final baseColor = _vec4(pbr['baseColorFactor'], [1, 1, 1, 1]);
@@ -228,7 +277,6 @@ class VrmMToonFactory {
     Map<String, dynamic> m,
     Map<String, dynamic> ext,
     Map<String, dynamic> mtoon,
-    Material? imported,
     String alphaMode,
   ) async {
     final p = material.parameters;
@@ -285,33 +333,21 @@ class VrmMToonFactory {
     final baseInfo = pbr['baseColorTexture'] as Map<String, dynamic>?;
 
     // Textures. The base color and emissive ones come from the importer.
-    Future<void> bind(
-      String param,
-      Map<String, dynamic>? info, {
-      TextureSource? reuse,
-    }) async {
+    Future<void> bind(String param, Map<String, dynamic>? info) async {
       if (info == null) return;
       final texIndex = info['index'] as int?;
       if (texIndex == null) return;
+      final image = _imageOf(texIndex);
       final gpuTexture =
-          reuse?.sampledTexture ?? (await _texture(texIndex))?.sampledTexture;
+          _importedImages[image]?.sampledTexture ??
+          (await _texture(texIndex))?.sampledTexture;
       if (gpuTexture == null) return;
       p.setTexture(param, gpuTexture, sampler: _sampler(texIndex));
     }
 
-    final pbrImported = imported is PhysicallyBasedMaterial ? imported : null;
-    final unlitImported = imported is UnlitMaterial ? imported : null;
     await Future.wait([
-      bind(
-        'base_color_texture',
-        baseInfo,
-        reuse: pbrImported?.baseColorTexture ?? unlitImported?.baseColorTexture,
-      ),
-      bind(
-        'emissive_texture',
-        m['emissiveTexture'] as Map<String, dynamic>?,
-        reuse: pbrImported?.emissiveTexture,
-      ),
+      bind('base_color_texture', baseInfo),
+      bind('emissive_texture', m['emissiveTexture'] as Map<String, dynamic>?),
       bind(
         'shade_multiply_texture',
         mtoon['shadeMultiplyTexture'] as Map<String, dynamic>?,

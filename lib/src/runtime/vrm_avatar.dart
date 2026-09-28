@@ -127,7 +127,15 @@ class VrmAvatar {
 
     final handles = <int, List<VrmMaterialHandle>>{};
     final mtoonHandles = <VrmMToonMaterialHandle>[];
-    final factory = mtoon ? VrmMToonFactory(document.gltf, binary) : null;
+    final factory = mtoon
+        ? VrmMToonFactory(
+            document.gltf,
+            binary,
+            imported: {
+              for (final e in primitives.entries) e.key: e.value.first.material,
+            },
+          )
+        : null;
     Object? mtoonError;
     final created = factory == null
         ? const <int, VrmMToonMaterialHandle?>{}
@@ -135,7 +143,7 @@ class VrmAvatar {
             await Future.wait([
               for (final e in primitives.entries)
                 factory
-                    .create(e.key, e.value.first.material)
+                    .create(e.key)
                     .then<VrmMToonMaterialHandle?>((h) => h)
                     .catchError((Object error) {
                       mtoonError ??= error;
