@@ -29,6 +29,9 @@ const String kInitialYaw = String.fromEnvironment('YAW');
 /// `face` frames the head instead of the whole body.
 const String kFraming = String.fromEnvironment('FRAMING');
 
+/// Raises the camera focus by this many meters (for heads above the bone).
+const String kFocusOffset = String.fromEnvironment('FOCUS_OFFSET');
+
 /// Anti-aliasing mode name (`auto`, `none`, `msaa`, `fxaa`, `smaa`, `taa`).
 const String kAntiAliasing = String.fromEnvironment('AA', defaultValue: 'auto');
 
@@ -153,7 +156,11 @@ class _ViewerPageState extends State<ViewerPage> {
         current = asset;
         final headY = head?.y ?? 1.4;
         if (kFraming == 'face') {
-          focus = vm.Vector3(0, headY + 0.06, 0);
+          focus = vm.Vector3(
+            0,
+            headY + 0.06 + (double.tryParse(kFocusOffset) ?? 0),
+            0,
+          );
           distance = 0.55;
         } else {
           focus = vm.Vector3(0, headY * 0.8, 0);
@@ -171,6 +178,8 @@ class _ViewerPageState extends State<ViewerPage> {
         final parts = kv.split('=');
         if (parts.length == 2) {
           next.expressions.setValue(parts[0], double.tryParse(parts[1]) ?? 0);
+          // An explicit blink value would be overwritten by auto blink.
+          if (parts[0] == 'blink') next.autoBlink.enabled = false;
         }
       }
     } on Object catch (e) {
