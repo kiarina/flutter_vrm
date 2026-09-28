@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- MToon no longer washes out on iOS: missing matcap and shading-shift textures now zero their
+  factors instead of relying on the shader's `default_black` placeholder, which samples white
+  on iOS with the pinned flutter_scene.
+
 ### Changed
 
 - `VrmAvatar.fromImported` is now asynchronous (it builds MToon materials).

@@ -29,6 +29,9 @@ const String kInitialYaw = String.fromEnvironment('YAW');
 /// `face` frames the head instead of the whole body.
 const String kFraming = String.fromEnvironment('FRAMING');
 
+/// Anti-aliasing mode name (`auto`, `none`, `msaa`, `fxaa`, `smaa`, `taa`).
+const String kAntiAliasing = String.fromEnvironment('AA', defaultValue: 'auto');
+
 /// `false` renders with the imported glTF materials instead of MToon.
 const bool kMToon = bool.fromEnvironment('MTOON', defaultValue: true);
 
@@ -86,6 +89,10 @@ class _ViewerPageState extends State<ViewerPage> {
 
   Future<void> _init() async {
     await Scene.initializeStaticResources();
+    scene.antiAliasingMode = AntiAliasingMode.values.firstWhere(
+      (m) => m.name == kAntiAliasing,
+      orElse: () => AntiAliasingMode.auto,
+    );
     scene.directionalLight = DirectionalLight(
       direction: vm.Vector3(-0.3, -1, -0.5)..normalize(),
       intensity: 3,
@@ -156,6 +163,7 @@ class _ViewerPageState extends State<ViewerPage> {
             '${next.meta.name} · loaded in ${sw.elapsedMilliseconds} ms · '
             '${next.document.expressions.length} expressions · '
             '${next.mtoonMaterialCount} MToon · '
+            'AA ${scene.effectiveAntiAliasingMode.name} · '
             'look-at ${next.document.lookAt?.type ?? 'none'}';
       });
       _applyPose();
