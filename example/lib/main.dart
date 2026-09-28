@@ -38,6 +38,10 @@ const String kAntiAliasing = String.fromEnvironment('AA', defaultValue: 'auto');
 /// `false` renders with the imported glTF materials instead of MToon.
 const bool kMToon = bool.fromEnvironment('MTOON', defaultValue: true);
 
+/// Loads the initial model this many times and lists every load's time
+/// (to tell a slow first load from slow loads).
+const int kLoads = int.fromEnvironment('LOADS', defaultValue: 1);
+
 void main() => runApp(const ViewerApp());
 
 class ViewerApp extends StatelessWidget {
@@ -148,19 +152,42 @@ class _ViewerPageState extends State<ViewerPage> {
         (m) => kInitialModel.isNotEmpty && m.endsWith(kInitialModel),
         orElse: () => models.first,
       );
-      await _load(initial);
+      for (var i = 0; i < kLoads; i++) {
+        await _load(initial);
+      }
     }
   }
+
+  /// Every load's time as "import+flutter_vrm" milliseconds.
+  final List<String> _loadTimes = [];
 
   Future<void> _load(String asset) async {
     setState(() => status = 'loading ${asset.split('/').last}');
     final sw = Stopwatch()..start();
     try {
       final data = await rootBundle.load(asset);
-      final next = await VrmAvatar.fromBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      final bytes = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+      // VrmAvatar.fromBytes in two steps, to time flutter_scene's import
+      // and flutter_vrm's part separately.
+      final glb = GlbContainer.parse(bytes);
+      final document = VrmDocument.fromGltfJson(glb.json);
+      final imported = await Node.fromGlbBytes(
+        bytes,
+        onWarning: (w) {
+          if (!'$w'.contains('VRMC_')) debugPrint('$w');
+        },
+      );
+      final importMs = sw.elapsedMilliseconds;
+      final next = await VrmAvatar.fromImported(
+        document,
+        imported,
+        binary: glb.binary,
         mtoon: kMToon,
       );
+      _loadTimes.add('$importMs+${sw.elapsedMilliseconds - importMs}');
       final old = avatar;
       if (old != null) scene.remove(old.root);
       scene.add(next.root);
@@ -182,6 +209,7 @@ class _ViewerPageState extends State<ViewerPage> {
           distance = math.max(1.4, headY * 2.0);
         }
         status =
+            '${kLoads > 1 ? 'loads (import+vrm ms): ${_loadTimes.join(', ')} · ' : ''}'
             '${next.meta.name} · loaded in ${sw.elapsedMilliseconds} ms · '
             '${next.document.expressions.length} expressions · '
             '${next.mtoonMaterialCount} MToon '
