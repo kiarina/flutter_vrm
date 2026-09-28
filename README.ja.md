@@ -135,12 +135,12 @@ dependency_overrides:
     git:
       url: https://github.com/bdero/flutter_scene
       path: packages/flutter_scene
-      ref: b02c99989473771a5d0baeba3cc03305a854f4eb
+      ref: cff220e468ec1540071a1ff95067f5b474259b53
   scene:
     git:
       url: https://github.com/bdero/flutter_scene
       path: packages/scene
-      ref: b02c99989473771a5d0baeba3cc03305a854f4eb
+      ref: cff220e468ec1540071a1ff95067f5b474259b53
 ```
 
 ## Example

@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Development and CI now pin flutter_scene `master` at `cff220e`, which applies glTF samplers
+  (wrap and filter) to runtime-imported textures ([bdero/flutter_scene#430](https://github.com/bdero/flutter_scene/pull/430)).
 - MToon reuses every texture the importer already uploaded (by glTF image) instead of
   decoding its own copy: on a VRoid sample, 116 ms instead of 300 ms of flutter_vrm's load
   time and 87 MB less memory on macOS.
