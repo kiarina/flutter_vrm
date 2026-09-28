@@ -1,0 +1,45 @@
+name: flutter_vrm
+description: >-
+  VRM 1.0 avatars on flutter_scene (Flutter GPU): humanoid poses, expressions,
+  look-at, and auto blink, from a renderer-independent VRM parser.
+version: 0.1.0-dev.1
+repository: https://github.com/kiarina/flutter_vrm
+issue_tracker: https://github.com/kiarina/flutter_vrm/issues
+topics:
+  - vrm
+  - avatar
+  - 3d
+  - gltf
+publish_to: none # until it can depend on a published flutter_scene release
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Works with the published 0.23 and with upstream master (0.24 in progress).
+  flutter_scene: ">=0.23.0 <0.25.0"
+  vector_math: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# Development and CI track a fixed upstream master commit, which is 2-3x
+# faster on Android than 0.23.0. Master's flutter_scene needs the `scene`
+# package from the same commit. Apps depending on flutter_vrm choose their own
+# flutter_scene; see README.
+dependency_overrides:
+  flutter_scene:
+    git:
+      url: https://github.com/bdero/flutter_scene
+      path: packages/flutter_scene
+      ref: b02c99989473771a5d0baeba3cc03305a854f4eb
+  scene:
+    git:
+      url: https://github.com/bdero/flutter_scene
+      path: packages/scene
+      ref: b02c99989473771a5d0baeba3cc03305a854f4eb

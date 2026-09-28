@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Download the VRM Consortium sample models into example/assets/samples/"
+# Both samples allow redistribution under the VRM Public License 1.0, but they
+# are kept out of git to keep the repository small. Seed-san requires credit
+# (VirtualCast, Inc.). Pinned to a vrm-c/vrm-specification commit.
+set -euo pipefail
+REF="${VRM_SPEC_REF:-821c11b250d8c70d5804ee13431e42bee56ea9c0}"
+BASE="https://raw.githubusercontent.com/vrm-c/vrm-specification/$REF/samples"
+DEST="$(cd "$(dirname "$0")/../.." && pwd)/example/assets/samples"
+mkdir -p "$DEST"
+for f in Seed-san/vrm/Seed-san.vrm VRM1_Constraint_Twist_Sample/vrm/VRM1_Constraint_Twist_Sample.vrm; do
+  out="$DEST/$(basename "$f")"
+  [ -s "$out" ] && { echo "have $(basename "$f")"; continue; }
+  curl -fsSL -o "$out" "$BASE/$f"
+  echo "fetched $(basename "$f") ($(wc -c < "$out" | tr -d ' ') bytes)"
+done

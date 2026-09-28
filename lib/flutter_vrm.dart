@@ -1,0 +1,12 @@
+/// VRM 1.0 avatars on flutter_scene.
+///
+/// [VrmDocument] reads the VRM content of a `.vrm` file without a renderer;
+/// [VrmAvatar] loads the file into a flutter_scene [Node] and animates it.
+library;
+
+export 'src/runtime/expression_manager.dart' show VrmExpressionManager;
+export 'src/runtime/humanoid_rig.dart' show VrmHumanoidRig;
+export 'src/runtime/look_at.dart' show VrmLookAt;
+export 'src/runtime/vrm_avatar.dart' show VrmAvatar, VrmAutoBlink;
+export 'src/schema/glb.dart' show GlbContainer;
+export 'src/schema/vrm_document.dart';

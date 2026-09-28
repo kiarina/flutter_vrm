@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Format check, analyze, and test the package and the example"
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+flutter pub get >/dev/null
+dart format --output=none --set-exit-if-changed lib test example/lib
+flutter analyze
+flutter test
+(cd example && flutter pub get >/dev/null && flutter analyze)
