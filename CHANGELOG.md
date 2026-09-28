@@ -37,4 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   flutter_scene's standard materials.
 - MToon outlines (inverted hull, world and screen coordinate widths, the width texture as a
   mask, `outlineColor` binds), normal maps, and `VrmAvatar.mtoonOutlineCount`.
-- Example viewer app and `mise run fetch-samples`.
+- SpringBone (`VRMC_springBone`): `VrmSpringBoneDefinition` in the schema and
+  `VrmSpringBoneSystem` (`avatar.springBones`), stepped by `VrmAvatar.update` after the pose.
+- Example viewer app and `mise run fetch-samples`. The example's `turn` pose swings the hips
+  to show spring bones.

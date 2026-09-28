@@ -171,6 +171,7 @@ class _ViewerPageState extends State<ViewerPage> {
             '${next.document.expressions.length} expressions · '
             '${next.mtoonMaterialCount} MToon '
             '(${next.mtoonOutlineCount} outlined) · '
+            '${next.springBones.chainCount} springs · '
             'AA ${scene.effectiveAntiAliasingMode.name} · '
             'look-at ${next.document.lookAt?.type ?? 'none'}';
       });
@@ -223,6 +224,16 @@ class _ViewerPageState extends State<ViewerPage> {
           vm.Quaternion.axisAngle(
             vm.Vector3(1, 0, 0),
             math.sin(t * 2 * math.pi / 4) * 0.02,
+          ),
+        );
+      }
+      if (pose == 'turn') {
+        final t = elapsed.inMicroseconds / 1e6;
+        a.humanoid.setNormalizedRotation(
+          VrmHumanBone.hips,
+          vm.Quaternion.axisAngle(
+            vm.Vector3(0, 1, 0),
+            math.sin(t * 2 * math.pi / 2) * 0.7,
           ),
         );
       }
@@ -458,6 +469,16 @@ class _Controls extends StatelessWidget {
             onChanged: (v) {
               avatar.autoBlink.enabled = v;
               if (!v) avatar.expressions.setValue('blink', 0);
+              onChanged();
+            },
+          ),
+          SwitchListTile(
+            dense: true,
+            title: const Text('Spring bones'),
+            value: avatar.springBones.enabled,
+            onChanged: (v) {
+              avatar.springBones.enabled = v;
+              avatar.springBones.reset();
               onChanged();
             },
           ),

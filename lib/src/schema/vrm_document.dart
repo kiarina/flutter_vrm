@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:vector_math/vector_math.dart';
 
 import 'glb.dart';
+import 'spring_bone.dart';
+
+export 'spring_bone.dart';
 
 /// VRM 1.0 humanoid bones. Enum names match the `humanBones` keys.
 enum VrmHumanBone {
@@ -385,6 +388,7 @@ class VrmDocument {
     required this.humanBones,
     required this.expressions,
     required this.lookAt,
+    required this.springBone,
   });
 
   /// The whole glTF JSON (for extensions this class does not model yet).
@@ -398,6 +402,9 @@ class VrmDocument {
   /// Every expression, keyed by name (preset names for presets).
   final Map<String, VrmExpressionDefinition> expressions;
   final VrmLookAtDefinition? lookAt;
+
+  /// `VRMC_springBone`, or null when the model has no spring bones.
+  final VrmSpringBoneDefinition? springBone;
 
   /// The raw `extensions` object of glTF material [index], if any.
   Map<String, dynamic>? materialExtensions(int index) {
@@ -485,6 +492,10 @@ class VrmDocument {
       expressions: expressions,
       lookAt: VrmLookAtDefinition._parse(
         vrm['lookAt'] as Map<String, dynamic>?,
+      ),
+      springBone: VrmSpringBoneDefinition.parse(
+        ext['VRMC_springBone'] as Map<String, dynamic>?,
+        nodeCount,
       ),
     );
   }

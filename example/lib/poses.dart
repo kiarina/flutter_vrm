@@ -19,6 +19,8 @@ final Map<VrmHumanBone, Quaternion> _relaxedArms = {
 final Map<String, Map<VrmHumanBone, Quaternion>> kPoses = {
   'rest': const {},
   'idle': _relaxedArms,
+  // The hips turn back and forth in main.dart, to watch spring bones swing.
+  'turn': _relaxedArms,
   'sit': {
     ..._relaxedArms,
     VrmHumanBone.leftUpperLeg: _about(1, 0, 0, -90),

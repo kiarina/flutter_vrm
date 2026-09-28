@@ -36,12 +36,16 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   shading shift and toony, emission, matcap, parametric rim, UV animation, alpha modes,
   double-sided, normal maps, and outlines). It ships compiled with the package; apps need no
   extra build step
+- **SpringBone**: `VRMC_springBone` chains (hair, clothes) sway with stiffness, gravity, and
+  drag, and collide with sphere and capsule colliders. They follow the avatar through the
+  world (move or turn `avatar.root` and they swing), and gravity stays world-down when the
+  avatar lies down
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene
 
-Not yet: SpringBone; node constraints; VRM Animation (`.vrma`); first-person settings; and
-VRM 0.x files. MToon's render queue offsets are ignored (flutter_scene sorts translucent
+Not yet: node constraints; VRM Animation (`.vrma`); first-person settings; and VRM 0.x
+files. MToon's render queue offsets are ignored (flutter_scene sorts translucent
 surfaces by depth).
 
 MToon reads its light from `avatar.mtoonLighting` rather than the scene, because flutter_scene's

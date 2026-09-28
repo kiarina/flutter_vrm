@@ -21,6 +21,9 @@
 - MToon は `tool/mtoon_template.fmat` を直して `dart run tool/generate_mtoon.dart` で `assets/materials/` の変種を作り直す
   （生成物を直接直さない）。パッケージ自身の `hook/build.dart` がコンパイルして `flutter_scene_generated/` に置き、アプリは
   `loadFmatMaterial(..., package: 'flutter_vrm')` で読む。Flutter 3.47 の stable では Dart data assets が使えないため、この方式にしている
+- SpringBone は VRM のモデル空間で積分し、尾の位置だけ世界（`center` があればその節点の空間）で覚える。モデル空間なら回転が
+  鏡映に汚されず、世界で覚えればアバターの移動で揺れる。重力の向きは glTF の -Z 鏡映を通してシーンへ写し、根で戻す
+  （寝かせても下向き）。動きの確認は `test/runtime/spring_bone_test.dart` と example の `POSE=turn`
 - MToon の輪郭線は、同じ geometry に輪郭線用の材質（`mtoon_outline*`、表の面を捨てて頂点の段階で法線方向へ押し出す）の
   primitive を足して描く。**`.fmat` の sampler は fragment の段階でしか読めない**ので、太さのテクスチャは fragment で
   discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 宣言した attribute が無い
