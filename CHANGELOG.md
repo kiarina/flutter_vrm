@@ -50,7 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `restModelPosition`, and `VrmHumanBone.parent`.
 - Hit testing: `VrmAvatar.hitTest`, `VrmAvatar.hitTestAll`, and `VrmAvatar.contains`, with
   body-part capsules (`VrmHitShapes`) that follow the posed humanoid bones, and optionally the
-  spring bone colliders.
+  spring bone colliders. The head capsule reaches from the head bone to the top of the model's
+  meshes, so big-headed and chibi models are covered.
 - Example viewer app and `mise run fetch-samples`. The example's `turn` pose swings the hips
   to show spring bones; `.vrma` assets play from the pose chips; taps report the body part,
   and `HITS=true` (or the switch) draws the hit capsules.

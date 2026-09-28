@@ -124,21 +124,34 @@ class VrmHitShapes {
       0.13,
       () => between(VrmHumanBone.spine, [VrmHumanBone.neck, VrmHumanBone.head]),
     );
-    // Head: a short upright capsule from just above the head bone.
-    add(VrmHumanBone.head, 0.1, () {
-      final node = _humanoid.node(VrmHumanBone.head);
-      if (node == null) return null;
-      final m = node.globalTransform;
-      final base = m.getTranslation();
-      // The head's model +Y in world space: follow the head's rotation.
-      final rotation = _humanoid.normalizedModelRotation(VrmHumanBone.head);
-      final upModel = (rotation ?? Matrix3.identity()).transformed(
-        Vector3(0, 1, 0),
+    // Head: from the head bone up to the top of the model (its meshes'
+    // rest bounds), so big-headed and chibi models are covered too. Without
+    // bounds, an average adult head.
+    final headRest = _humanoid.restModelPosition(VrmHumanBone.head);
+    final top = _modelTop(gltfNodes);
+    final measured = headRest == null || top == null ? 0.0 : top - headRest.y;
+    final headSize = measured > 0.05 && measured < 2 * (headRest?.y ?? 1)
+        ? measured
+        : 0.22 * s;
+    final headRadius = headSize * 0.45;
+    if (_humanoid.node(VrmHumanBone.head) != null) {
+      capsules.add(
+        VrmHitCapsule._(VrmHumanBone.head, headRadius, () {
+          final node = _humanoid.node(VrmHumanBone.head)!;
+          final base = node.globalTransform.getTranslation();
+          // The head's model +Y in world space: follow the head's rotation.
+          final rotation = _humanoid.normalizedModelRotation(VrmHumanBone.head);
+          final upModel = (rotation ?? Matrix3.identity()).transformed(
+            Vector3(0, 1, 0),
+          );
+          final up = _modelRoot.globalTransform.rotated3(upModel)..normalize();
+          final k = _worldScale();
+          final low = headRadius * 0.9;
+          final high = math.max(low, headSize - headRadius * 0.9);
+          return (base + up * (low * k), base + up * (high * k));
+        }),
       );
-      final up = _modelRoot.globalTransform.rotated3(upModel)..normalize();
-      final k = s * _worldScale();
-      return (base + up * (0.07 * k), base + up * (0.13 * k));
-    });
+    }
     for (final (upper, lower, hand, middle) in const [
       (
         VrmHumanBone.leftUpperArm,
@@ -194,6 +207,30 @@ class VrmHitShapes {
 
   /// How many spring bone colliders the model has (see [hitTest]).
   int get springColliderCount => _colliders.length;
+
+  /// The highest point of the model's meshes at rest, in model space.
+  double? _modelTop(List<Node?> nodes) {
+    final rootInverse = Matrix4.inverted(_modelRoot.globalTransform);
+    double? top;
+    for (final node in nodes) {
+      final mesh = node?.mesh;
+      if (node == null || mesh == null) continue;
+      final m = rootInverse * node.globalTransform as Matrix4;
+      for (final p in mesh.primitives) {
+        final b = p.geometry.localBounds;
+        if (b == null) continue;
+        for (final x in [b.min.x, b.max.x]) {
+          for (final y in [b.min.y, b.max.y]) {
+            for (final z in [b.min.z, b.max.z]) {
+              final v = m.transform3(Vector3(x, y, z));
+              if (top == null || v.y > top) top = v.y;
+            }
+          }
+        }
+      }
+    }
+    return top;
+  }
 
   double _worldScale() {
     final m = _modelRoot.globalTransform;
