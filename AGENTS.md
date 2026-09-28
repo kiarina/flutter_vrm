@@ -38,8 +38,10 @@
 
 - `flutter test`。VRM のファイルは使わず、`test/support/synthetic_vrm.dart` でメモリ上に組み立てる
 - 骨や視線の計算は、軸がそろっていない休止姿勢のリグ（`test/runtime/runtime_test.dart` の `chainVrm`）で確かめる
-- 見た目の確認は example で行う。`--dart-define=MODEL=... POSE=... EXPRESSIONS=happy=1 YAW=30` で、
-  操作せずに同じ画面を再現できる
+- 見た目の確認は example で行う。`--dart-define` の `MODEL`・`POSE`・`EXPRESSIONS`（例 `happy=1,aa=0.5`）・`YAW`・
+  `FRAMING=face`・`FOCUS_OFFSET`・`AA`（`msaa` など）・`MTOON=false` で、操作せずに同じ画面を再現できる。
+  `EXPRESSIONS` に `blink` を入れると自動まばたきが止まる
+- iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
 
 ## VRM のファイル
 
