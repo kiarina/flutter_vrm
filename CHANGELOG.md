@@ -39,5 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   mask, `outlineColor` binds), normal maps, and `VrmAvatar.mtoonOutlineCount`.
 - SpringBone (`VRMC_springBone`): `VrmSpringBoneDefinition` in the schema and
   `VrmSpringBoneSystem` (`avatar.springBones`), stepped by `VrmAvatar.update` after the pose.
+- Node constraints (`VRMC_node_constraint`): `VrmNodeConstraint` in the schema and
+  `VrmNodeConstraints` (`avatar.constraints`), run in dependency order after the pose.
 - Example viewer app and `mise run fetch-samples`. The example's `turn` pose swings the hips
   to show spring bones.

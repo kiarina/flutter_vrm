@@ -11,6 +11,7 @@ import 'humanoid_rig.dart';
 import 'look_at.dart';
 import 'material_handles.dart';
 import 'mtoon.dart';
+import 'node_constraint.dart';
 import 'spring_bone.dart';
 
 /// A VRM 1.0 avatar in a flutter_scene [Scene].
@@ -37,6 +38,7 @@ class VrmAvatar {
     required this.humanoid,
     required this.expressions,
     required this.lookAt,
+    required this.constraints,
     required this.springBones,
     required List<VrmMToonMaterialHandle> mtoonMaterials,
   }) : _mtoonMaterials = mtoonMaterials;
@@ -55,6 +57,9 @@ class VrmAvatar {
   final VrmHumanoidRig humanoid;
   final VrmExpressionManager expressions;
   final VrmLookAt lookAt;
+
+  /// `VRMC_node_constraint` helper nodes (twist bones and the like).
+  final VrmNodeConstraints constraints;
 
   /// The swaying chains (hair, clothes) of `VRMC_springBone`.
   final VrmSpringBoneSystem springBones;
@@ -185,6 +190,11 @@ class VrmAvatar {
       humanoid: humanoid,
       expressions: expressions,
       lookAt: VrmLookAt(document.lookAt, humanoid, expressions),
+      constraints: VrmNodeConstraints(
+        document.nodeConstraints,
+        nodes,
+        imported,
+      ),
       springBones: VrmSpringBoneSystem(document.springBone, nodes, imported),
       mtoonMaterials: mtoonHandles,
     );
@@ -193,8 +203,8 @@ class VrmAvatar {
   /// Applies the pose, look-at, and expressions for this frame.
   ///
   /// Order: humanoid pose, look-at (which reads the posed head and may set
-  /// eye rotations or look expressions), spring bones (which follow the
-  /// posed body), then expressions.
+  /// eye rotations or look expressions), node constraints, spring bones
+  /// (which follow the posed body), then expressions.
   ///
   /// Pass the [camera] that draws the avatar so MToon outlines sized in
   /// screen coordinates follow its field of view.
@@ -210,6 +220,7 @@ class VrmAvatar {
     humanoid.apply();
     lookAt.update();
     humanoid.apply();
+    constraints.update();
     springBones.update(deltaSeconds);
     autoBlink.update(deltaSeconds, expressions);
     expressions.apply();

@@ -32,10 +32,11 @@ flutter_vrm は同じバイト列からその拡張を読み、読み込まれ�
   リム、UV アニメーション、アルファのモード、両面、法線マップ、輪郭線）。コンパイル済みでパッケージに含まれ、アプリ側のビルドの手順は要らない
 - **SpringBone**: `VRMC_springBone` の揺れもの（髪、服）を、硬さ・重力・空気抵抗に従って揺らし、球とカプセルのコライダーに当てる。
   アバターを動かす・回す（`avatar.root`）と揺れ、寝かせても重力は世界の下向きのまま
+- **ノードの拘束**: `VRMC_node_constraint` の roll・aim・rotation（ねじれの補助骨、腕に付いてくる袖など）
 - **自動まばたき**
 - **描画に依存しないパーサー**: `package:flutter_vrm/vrm_schema.dart` は flutter_scene を使わずに GLB と VRM 1.0 を読む
 
-まだ無いもの: ノードの拘束、VRM Animation（`.vrma`）、一人称の設定、VRM 0.x のファイル。
+まだ無いもの: VRM Animation（`.vrma`）、一人称の設定、VRM 0.x のファイル。
 MToon の描画順（render queue の offset）は無視します（flutter_scene は半透明の面を深度で並べ替える）。
 
 MToon の光はシーンではなく `avatar.mtoonLighting` から読みます。flutter_scene の独自材質がまだシーンの光を読めないためです。

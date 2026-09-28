@@ -24,6 +24,8 @@
 - SpringBone は VRM のモデル空間で積分し、尾の位置だけ世界（`center` があればその節点の空間）で覚える。モデル空間なら回転が
   鏡映に汚されず、世界で覚えればアバターの移動で揺れる。重力の向きは glTF の -Z 鏡映を通してシーンへ写し、根で戻す
   （寝かせても下向き）。動きの確認は `test/runtime/spring_bone_test.dart` と example の `POSE=turn`
+- NodeConstraint は three-vrm と同じ式（roll・rotation はローカルの回転、aim は親の回転をモデル空間で）。source やその祖先を
+  別の拘束が動かすなら、そちらを先に評価する。確認は `test/runtime/node_constraint_test.dart` と Twist サンプルの袖・短パン
 - MToon の輪郭線は、同じ geometry に輪郭線用の材質（`mtoon_outline*`、表の面を捨てて頂点の段階で法線方向へ押し出す）の
   primitive を足して描く。**`.fmat` の sampler は fragment の段階でしか読めない**ので、太さのテクスチャは fragment で
   discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 宣言した attribute が無い

@@ -10,6 +10,7 @@ export 'src/runtime/look_at.dart' show VrmLookAt;
 export 'src/runtime/material_handles.dart'
     show VrmMaterialHandle, VrmStandardMaterialHandle;
 export 'src/runtime/mtoon.dart' show VrmMToonLighting, VrmMToonMaterialHandle;
+export 'src/runtime/node_constraint.dart' show VrmNodeConstraints;
 export 'src/runtime/spring_bone.dart' show VrmSpringBoneSystem;
 export 'src/runtime/vrm_avatar.dart' show VrmAvatar, VrmAutoBlink;
 export 'src/schema/glb.dart' show GlbContainer;
