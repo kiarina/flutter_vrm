@@ -18,6 +18,9 @@
   `asRotationMatrix()` や `Matrix4.compose` と逆向きの回転をかける。`Quaternion` は受け渡しにだけ使う
 - 骨の姿勢は「正規化した回転」（VRM のモデル空間、T ポーズからの差、親の humanoid の骨に対する相対）で受け取り、
   `VrmHumanoidRig.apply` で各モデルの骨の軸へ変換する
+- MToon は `tool/mtoon_template.fmat` を直して `dart run tool/generate_mtoon.dart` で `assets/materials/` の変種を作り直す
+  （生成物を直接直さない）。パッケージ自身の `hook/build.dart` がコンパイルして `flutter_scene_generated/` に置き、アプリは
+  `loadFmatMaterial(..., package: 'flutter_vrm')` で読む。Flutter 3.47 の stable では Dart data assets が使えないため、この方式にしている
 - flutter_scene の runtime importer は glTF のデータを変えずに読み込み、根のノードに Z の反転を置く。
   そのためこのパッケージの計算はすべてその根の子の空間（= glTF / VRM のモデル空間）で行う
 

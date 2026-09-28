@@ -7,6 +7,9 @@ library;
 export 'src/runtime/expression_manager.dart' show VrmExpressionManager;
 export 'src/runtime/humanoid_rig.dart' show VrmHumanoidRig;
 export 'src/runtime/look_at.dart' show VrmLookAt;
+export 'src/runtime/material_handles.dart'
+    show VrmMaterialHandle, VrmStandardMaterialHandle;
+export 'src/runtime/mtoon.dart' show VrmMToonLighting, VrmMToonMaterialHandle;
 export 'src/runtime/vrm_avatar.dart' show VrmAvatar, VrmAutoBlink;
 export 'src/schema/glb.dart' show GlbContainer;
 export 'src/schema/vrm_document.dart';

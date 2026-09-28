@@ -157,9 +157,9 @@ void main() {
 
   group('normalized humanoid pose', () {
     late VrmAvatar avatar;
-    setUp(() {
+    setUp(() async {
       final gltf = chainVrm();
-      avatar = VrmAvatar.fromImported(
+      avatar = await VrmAvatar.fromImported(
         VrmDocument.fromGltfJson(gltf),
         importLike(gltf),
       );

@@ -26,6 +26,12 @@ const String kInitialExpressions = String.fromEnvironment('EXPRESSIONS');
 /// Initial camera yaw in degrees (0 looks at the avatar's face).
 const String kInitialYaw = String.fromEnvironment('YAW');
 
+/// `face` frames the head instead of the whole body.
+const String kFraming = String.fromEnvironment('FRAMING');
+
+/// `false` renders with the imported glTF materials instead of MToon.
+const bool kMToon = bool.fromEnvironment('MTOON', defaultValue: true);
+
 void main() => runApp(const ViewerApp());
 
 class ViewerApp extends StatelessWidget {
@@ -128,6 +134,7 @@ class _ViewerPageState extends State<ViewerPage> {
       final data = await rootBundle.load(asset);
       final next = await VrmAvatar.fromBytes(
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        mtoon: kMToon,
       );
       final old = avatar;
       if (old != null) scene.remove(old.root);
@@ -137,11 +144,18 @@ class _ViewerPageState extends State<ViewerPage> {
       setState(() {
         avatar = next;
         current = asset;
-        focus = vm.Vector3(0, (head?.y ?? 1.4) * 0.8, 0);
-        distance = math.max(1.4, (head?.y ?? 1.4) * 2.0);
+        final headY = head?.y ?? 1.4;
+        if (kFraming == 'face') {
+          focus = vm.Vector3(0, headY + 0.06, 0);
+          distance = 0.55;
+        } else {
+          focus = vm.Vector3(0, headY * 0.8, 0);
+          distance = math.max(1.4, headY * 2.0);
+        }
         status =
             '${next.meta.name} · loaded in ${sw.elapsedMilliseconds} ms · '
             '${next.document.expressions.length} expressions · '
+            '${next.mtoonMaterialCount} MToon · '
             'look-at ${next.document.lookAt?.type ?? 'none'}';
       });
       _applyPose();
@@ -180,6 +194,7 @@ class _ViewerPageState extends State<ViewerPage> {
       ..target = focus;
     final a = avatar;
     if (a != null) {
+      a.mtoonLighting.fromScene(scene);
       a.lookAt.enabled = lookAtCamera;
       a.lookAt.target = lookAtCamera ? eye : null;
       if (pose == 'idle') {

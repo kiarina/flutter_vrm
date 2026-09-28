@@ -28,11 +28,17 @@ flutter_vrm は同じバイト列からその拡張を読み、読み込まれ�
 - **表情**: プリセットとカスタム、`isBinary`、まばたき・視線・口の override、モーフターゲット、材質の色（`color`・`emissionColor`）、
   テクスチャの UV の変換
 - **視線**: `bone`（目の骨を回す）と `expression`（lookUp/Down/Left/Right を動かす）の両方。モデルの range map に従う
+- **MToon**: `VRMC_materials_mtoon` の材質を MToon 1.0 のシェーダーで描く（影色、影の位置と境界のぼかし、発光、matcap、
+  リム、UV アニメーション、アルファのモード、両面）。コンパイル済みでパッケージに含まれ、アプリ側のビルドの手順は要らない
 - **自動まばたき**
 - **描画に依存しないパーサー**: `package:flutter_vrm/vrm_schema.dart` は flutter_scene を使わずに GLB と VRM 1.0 を読む
 
-まだ無いもの: MToon（材質は glTF の PBR / unlit で描くため、顔が崩れて見えるモデルがある）、SpringBone、ノードの拘束、
-VRM Animation（`.vrma`）、一人称の設定、VRM 0.x のファイル。
+まだ無いもの: MToon の輪郭線・法線マップ・描画順（render queue）、SpringBone、ノードの拘束、VRM Animation（`.vrma`）、
+一人称の設定、VRM 0.x のファイル。
+
+MToon の光はシーンではなく `avatar.mtoonLighting` から読みます。flutter_scene の独自材質がまだシーンの光を読めないためです。
+シーンの平行光源に合わせるには、毎フレーム `avatar.mtoonLighting.fromScene(scene)` を呼びます。環境光は環境マップではなく
+空と地面の 2 色（`skyColor`、`groundColor`）で近似し、MToon の面には影（シャドウマップ）が落ちません。
 
 ## Quick Start
 
@@ -76,7 +82,8 @@ avatar.update(deltaSeconds);
 
 ### Which flutter_scene
 
-flutter_vrm は、公開済みの flutter_scene 0.23 でも、本家の `master`（開発中の 0.24）でも動きます。このリポジトリは `master` の特定の
+flutter_vrm は、公開済みの flutter_scene 0.23 と本家の `master`（開発中の 0.24）のどちらでもコンパイルできますが、
+動作を確かめているのは `master` です（MToon のコンパイル済みシェーダーを含む。読み込めないときは glTF の材質のまま描きます）。このリポジトリは `master` の特定の
 commit に固定して開発しています。私たちの計測では Android で 2〜3 倍速く描けました。アプリで同じようにするには、同じ commit の
 2 つのパッケージを override します。
 

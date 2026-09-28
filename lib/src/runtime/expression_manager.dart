@@ -3,6 +3,7 @@ import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
 
 import '../schema/vrm_document.dart';
+import 'material_handles.dart';
 
 /// Holds expression values and writes them to morph targets, material
 /// colors, and texture transforms following the VRM 1.0 rules:
@@ -19,13 +20,23 @@ class VrmExpressionManager {
         _boundMorphs.add((b.node, b.index));
       }
       for (final b in def.materialColorBinds) {
-        for (final m in _materials[b.material] ?? const <Material>{}) {
-          _baseColors.putIfAbsent((m, b.type), () => _readColor(m, b.type));
+        for (final h in _materials[b.material] ?? const <VrmMaterialHandle>[]) {
+          final base = h.readColor(b.type);
+          if (base == null) {
+            _warnOnce(
+              'color ${b.type} ${h.runtimeType}',
+              'materialColorBind "${b.type}" is not supported on '
+                  '${h.runtimeType}',
+            );
+            continue;
+          }
+          _baseColors.putIfAbsent((h, b.type), () => base);
         }
       }
       for (final b in def.textureTransformBinds) {
-        for (final m in _materials[b.material] ?? const <Material>{}) {
-          _baseTransforms.putIfAbsent(m, () => _readTransform(m));
+        for (final h in _materials[b.material] ?? const <VrmMaterialHandle>[]) {
+          final base = h.readUvTransform();
+          if (base != null) _baseTransforms.putIfAbsent(h, () => base);
         }
       }
     }
@@ -34,12 +45,12 @@ class VrmExpressionManager {
   /// Every expression the model defines, keyed by name.
   final Map<String, VrmExpressionDefinition> definitions;
   final List<Node?> _gltfNodes;
-  final Map<int, Set<Material>> _materials;
+  final Map<int, List<VrmMaterialHandle>> _materials;
 
   final Map<String, double> _values = {};
   final Set<(int, int)> _boundMorphs = {};
-  final Map<(Material, String), Vector4?> _baseColors = {};
-  final Map<Material, TextureTransform?> _baseTransforms = {};
+  final Map<(VrmMaterialHandle, String), Vector4> _baseColors = {};
+  final Map<VrmMaterialHandle, (Vector2, Vector2)> _baseTransforms = {};
   final Set<String> _warned = {};
 
   /// Sets expression [name] to [value] (clamped to 0..1). Unknown names are
@@ -99,11 +110,12 @@ class VrmExpressionManager {
   void apply() {
     final weights = effectiveWeights();
 
-    // Morph targets: every bound target is rewritten each frame.
+    // Every bound target is rewritten each frame, so released expressions
+    // return to their base values.
     final morph = <(int, int), double>{for (final k in _boundMorphs) k: 0.0};
-    final colors = <(Material, String), Vector4>{};
-    final offsets = <Material, Vector2>{};
-    final scales = <Material, Vector2>{};
+    final colors = <(VrmMaterialHandle, String), Vector4>{};
+    final offsets = <VrmMaterialHandle, Vector2>{};
+    final scales = <VrmMaterialHandle, Vector2>{};
 
     for (final e in weights.entries) {
       final d = definitions[e.key]!;
@@ -113,31 +125,30 @@ class VrmExpressionManager {
         morph[k] = morph[k]! + b.weight * w;
       }
       for (final b in d.materialColorBinds) {
-        for (final m in _materials[b.material] ?? const <Material>{}) {
-          final base = _baseColors[(m, b.type)];
+        for (final h in _materials[b.material] ?? const <VrmMaterialHandle>[]) {
+          final k = (h, b.type);
+          final base = _baseColors[k];
           if (base == null) continue;
-          final k = (m, b.type);
           colors[k] = (colors[k] ?? base.clone()) + (b.targetValue - base) * w;
         }
       }
       for (final b in d.textureTransformBinds) {
-        for (final m in _materials[b.material] ?? const <Material>{}) {
-          offsets[m] = (offsets[m] ?? Vector2.zero()) + b.offset * w;
-          scales[m] =
-              (scales[m] ?? Vector2.zero()) + (b.scale - Vector2(1, 1)) * w;
+        for (final h in _materials[b.material] ?? const <VrmMaterialHandle>[]) {
+          offsets[h] = (offsets[h] ?? Vector2.zero()) + b.offset * w;
+          scales[h] =
+              (scales[h] ?? Vector2.zero()) + (b.scale - Vector2(1, 1)) * w;
         }
       }
     }
 
     for (final e in morph.entries) {
-      final node = _gltfNodes[e.key.$1];
+      final node = _gltfNodes.length > e.key.$1 ? _gltfNodes[e.key.$1] : null;
       if (node == null) continue;
       final weights = node.morphWeights;
       if (weights == null || e.key.$2 >= weights.length) {
         _warnOnce(
           'morph ${e.key}',
-          'node ${e.key.$1} has no morph target '
-              '${e.key.$2}',
+          'node ${e.key.$1} has no morph target ${e.key.$2}',
         );
         continue;
       }
@@ -145,73 +156,15 @@ class VrmExpressionManager {
     }
 
     for (final e in _baseColors.entries) {
-      final base = e.value;
-      if (base == null) continue;
-      _writeColor(e.key.$1, e.key.$2, colors[e.key] ?? base);
+      e.key.$1.writeColor(e.key.$2, colors[e.key] ?? e.value);
     }
 
     for (final e in _baseTransforms.entries) {
-      final base = e.value;
-      if (base == null) continue;
-      final t = TextureTransform(
-        offset: base.offset + (offsets[e.key] ?? Vector2.zero()),
-        scale: base.scale + (scales[e.key] ?? Vector2.zero()),
-        rotation: base.rotation,
+      final (offset, scale) = e.value;
+      e.key.writeUvTransform(
+        offset + (offsets[e.key] ?? Vector2.zero()),
+        scale + (scales[e.key] ?? Vector2.zero()),
       );
-      _writeTransform(e.key, t);
-    }
-  }
-
-  Vector4? _readColor(Material m, String type) {
-    switch (type) {
-      case 'color':
-        if (m is PhysicallyBasedMaterial) return m.baseColorFactor.clone();
-        if (m is UnlitMaterial) return m.baseColorFactor.clone();
-      case 'emissionColor':
-        if (m is PhysicallyBasedMaterial) return m.emissiveFactor.clone();
-    }
-    _warnOnce(
-      'color $type ${m.runtimeType}',
-      'materialColorBind "$type" is not supported on ${m.runtimeType}',
-    );
-    return null;
-  }
-
-  void _writeColor(Material m, String type, Vector4 v) {
-    switch (type) {
-      case 'color':
-        if (m is PhysicallyBasedMaterial) m.baseColorFactor = v;
-        if (m is UnlitMaterial) m.baseColorFactor = v;
-      case 'emissionColor':
-        if (m is PhysicallyBasedMaterial) m.emissiveFactor = v;
-    }
-  }
-
-  TextureTransform? _readTransform(Material m) {
-    TextureTransform copy(TextureTransform t) => TextureTransform(
-      offset: t.offset.clone(),
-      scale: t.scale.clone(),
-      rotation: t.rotation,
-    );
-    if (m is PhysicallyBasedMaterial) return copy(m.baseColorTextureTransform);
-    if (m is UnlitMaterial) return copy(m.baseColorTextureTransform);
-    _warnOnce(
-      'uv ${m.runtimeType}',
-      'textureTransformBind is not supported on ${m.runtimeType}',
-    );
-    return null;
-  }
-
-  void _writeTransform(Material m, TextureTransform t) {
-    if (m is PhysicallyBasedMaterial) {
-      // VRM moves every texture of the material together.
-      m.baseColorTextureTransform = t;
-      m.emissiveTextureTransform = t;
-      m.normalTextureTransform = t;
-      m.metallicRoughnessTextureTransform = t;
-      m.occlusionTextureTransform = t;
-    } else if (m is UnlitMaterial) {
-      m.baseColorTextureTransform = t;
     }
   }
 

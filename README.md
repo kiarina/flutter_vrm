@@ -32,12 +32,21 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   transform binds
 - **Look-at**: both `bone` (eye bones) and `expression` (lookUp/Down/Left/Right) types, with
   the model's range maps
+- **MToon**: `VRMC_materials_mtoon` materials render with an MToon 1.0 shader (shade color,
+  shading shift and toony, emission, matcap, parametric rim, UV animation, alpha modes,
+  double-sided). It ships compiled with the package; apps need no extra build step
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene
 
-Not yet: MToon (materials render as glTF PBR / unlit, so some faces look off), SpringBone,
-node constraints, VRM Animation (`.vrma`), first-person settings, and VRM 0.x files.
+Not yet: MToon outlines, normal maps, and render queue offsets; SpringBone; node constraints;
+VRM Animation (`.vrma`); first-person settings; and VRM 0.x files.
+
+MToon reads its light from `avatar.mtoonLighting` rather than the scene, because flutter_scene's
+custom materials cannot read scene lights yet. Call `avatar.mtoonLighting.fromScene(scene)`
+each frame to follow the scene's directional light. Global illumination is a sky / ground
+ambient pair (`skyColor`, `groundColor`) instead of the environment map, and MToon surfaces do
+not receive shadow maps.
 
 ## Quick Start
 
@@ -83,8 +92,9 @@ flutter_scene maps to -Z in the scene.
 
 ### Which flutter_scene
 
-flutter_vrm works with the published flutter_scene 0.23 and with its upstream `master`
-(0.24 in progress). This repository develops against a pinned `master` commit, which in our
+flutter_vrm compiles against the published flutter_scene 0.23 and its upstream `master`
+(0.24 in progress), but is tested on `master` (MToon's compiled shaders included; if they
+fail to load, avatars fall back to the imported glTF materials). This repository develops against a pinned `master` commit, which in our
 measurements ran 2 to 3 times faster on Android. To do the same in your app, override both
 packages from the same commit:
 

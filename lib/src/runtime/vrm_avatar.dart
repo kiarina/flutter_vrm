@@ -9,6 +9,8 @@ import 'expression_manager.dart';
 import 'gltf_mapping.dart';
 import 'humanoid_rig.dart';
 import 'look_at.dart';
+import 'material_handles.dart';
+import 'mtoon.dart';
 
 /// A VRM 1.0 avatar in a flutter_scene [Scene].
 ///
@@ -34,7 +36,8 @@ class VrmAvatar {
     required this.humanoid,
     required this.expressions,
     required this.lookAt,
-  });
+    required List<VrmMToonMaterialHandle> mtoonMaterials,
+  }) : _mtoonMaterials = mtoonMaterials;
 
   /// The parsed VRM content (meta, humanoid, expressions, look-at).
   final VrmDocument document;
@@ -55,15 +58,29 @@ class VrmAvatar {
   /// `blink` yourself.
   final VrmAutoBlink autoBlink = VrmAutoBlink();
 
+  /// The light MToon materials use (see [VrmMToonLighting.fromScene]).
+  final VrmMToonLighting mtoonLighting = VrmMToonLighting();
+
+  final List<VrmMToonMaterialHandle> _mtoonMaterials;
+  double _time = 0;
+
+  /// How many of the model's materials render as MToon.
+  int get mtoonMaterialCount => _mtoonMaterials.length;
+
   VrmMeta get meta => document.meta;
 
   /// Loads a `.vrm` file.
   ///
   /// [onWarning] receives the importer's non-fatal warnings; by default the
   /// expected "unrecognized extension VRMC_*" ones are dropped.
+  ///
+  /// With [mtoon] (the default), materials carrying `VRMC_materials_mtoon`
+  /// render with flutter_vrm's MToon shader; otherwise, or if the shader is
+  /// unavailable, they keep the glTF PBR / unlit material the importer made.
   static Future<VrmAvatar> fromBytes(
     Uint8List bytes, {
     void Function(String message)? onWarning,
+    bool mtoon = true,
   }) async {
     final glb = GlbContainer.parse(bytes);
     final document = VrmDocument.fromGltfJson(glb.json);
@@ -78,20 +95,68 @@ class VrmAvatar {
         }
       },
     );
-    return fromImported(document, imported);
+    return fromImported(document, imported, binary: glb.binary, mtoon: mtoon);
   }
 
   /// Wraps a model flutter_scene already imported from the same bytes that
-  /// produced [document].
-  static VrmAvatar fromImported(VrmDocument document, Node imported) {
+  /// produced [document]. [binary] is the file's BIN chunk, needed for the
+  /// MToon-only textures.
+  static Future<VrmAvatar> fromImported(
+    VrmDocument document,
+    Node imported, {
+    Uint8List? binary,
+    bool mtoon = true,
+  }) async {
     final root = Node(name: 'vrm:${document.meta.name}')..add(imported);
     final nodes = mapGltfNodes(document.gltf, imported);
-    final materials = mapGltfMaterials(document.gltf, nodes);
+    final primitives = mapGltfPrimitives(document.gltf, nodes);
+
+    final handles = <int, List<VrmMaterialHandle>>{};
+    final mtoonHandles = <VrmMToonMaterialHandle>[];
+    final factory = mtoon ? VrmMToonFactory(document.gltf, binary) : null;
+    Object? mtoonError;
+    final created = factory == null
+        ? const <int, VrmMToonMaterialHandle?>{}
+        : Map.fromEntries(
+            await Future.wait([
+              for (final e in primitives.entries)
+                factory
+                    .create(e.key, e.value.first.material)
+                    .then<VrmMToonMaterialHandle?>((h) => h)
+                    .catchError((Object error) {
+                      mtoonError ??= error;
+                      return null;
+                    })
+                    .then((h) => MapEntry(e.key, h)),
+            ]),
+          );
+    if (mtoonError != null) {
+      debugPrint(
+        'flutter_vrm: MToon unavailable, keeping the imported materials '
+        '($mtoonError)',
+      );
+    }
+    for (final e in primitives.entries) {
+      final h = mtoonError == null ? created[e.key] : null;
+      if (h != null) {
+        for (final p in e.value) {
+          p.material = h.material;
+        }
+        handles[e.key] = [h];
+        mtoonHandles.add(h);
+      } else {
+        handles[e.key] = [
+          for (final m in {for (final p in e.value) p.material})
+            VrmStandardMaterialHandle(m),
+        ];
+      }
+    }
+
     final humanoid = VrmHumanoidRig(document.humanBones, nodes, imported);
     final expressions = VrmExpressionManager(
       document.expressions,
       nodes,
-      materials,
+      handles,
     );
     return VrmAvatar._(
       document: document,
@@ -101,6 +166,7 @@ class VrmAvatar {
       humanoid: humanoid,
       expressions: expressions,
       lookAt: VrmLookAt(document.lookAt, humanoid, expressions),
+      mtoonMaterials: mtoonHandles,
     );
   }
 
@@ -109,6 +175,10 @@ class VrmAvatar {
   /// Order: humanoid pose, look-at (which reads the posed head and may set
   /// eye rotations or look expressions), then expressions.
   void update(double deltaSeconds) {
+    _time += deltaSeconds;
+    for (final m in _mtoonMaterials) {
+      m.updateFrame(mtoonLighting, _time);
+    }
     humanoid.apply();
     lookAt.update();
     humanoid.apply();

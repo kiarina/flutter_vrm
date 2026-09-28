@@ -50,9 +50,10 @@ List<Node?> mapGltfNodes(Map<String, dynamic> gltf, Node importedRoot) {
   return result;
 }
 
-/// glTF material index -> the engine materials created for it, found through
-/// each mesh node's primitives (which the importer keeps in glTF order).
-Map<int, Set<Material>> mapGltfMaterials(
+/// glTF material index -> the imported primitives drawn with it, found
+/// through each mesh node's primitives (which the importer keeps in glTF
+/// order). Replacing `primitive.material` swaps the material on the model.
+Map<int, List<MeshPrimitive>> mapGltfPrimitives(
   Map<String, dynamic> gltf,
   List<Node?> gltfNodes,
 ) {
@@ -60,7 +61,7 @@ Map<int, Set<Material>> mapGltfMaterials(
       .cast<Map<String, dynamic>>();
   final meshes = (gltf['meshes'] as List? ?? const [])
       .cast<Map<String, dynamic>>();
-  final out = <int, Set<Material>>{};
+  final out = <int, List<MeshPrimitive>>{};
   for (var i = 0; i < nodes.length; i++) {
     final meshIndex = nodes[i]['mesh'] as int?;
     final mesh = gltfNodes[i]?.mesh;
@@ -77,7 +78,7 @@ Map<int, Set<Material>> mapGltfMaterials(
     for (var p = 0; p < prims.length; p++) {
       final m = prims[p]['material'] as int?;
       if (m == null) continue;
-      (out[m] ??= {}).add(mesh.primitives[p].material);
+      (out[m] ??= []).add(mesh.primitives[p]);
     }
   }
   return out;

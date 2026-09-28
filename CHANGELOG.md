@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `VrmAvatar.fromImported` is now asynchronous (it builds MToon materials).
+
 ### Added
 
 - `VrmDocument` and `GlbContainer`: renderer-independent reading of VRM 1.0 meta, humanoid,
@@ -17,4 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   material color (`color`, `emissionColor`), and texture transform binds.
 - `VrmLookAt`: bone and expression look-at with range maps.
 - `VrmAutoBlink`.
+- MToon 1.0 materials (`assets/materials/*.fmat`, generated from `tool/mtoon_template.fmat`),
+  compiled by the package's own build hook, with `VrmMToonLighting`. Textures honor the glTF
+  sampler's wrap and filter modes.
+- `VrmMaterialHandle`: material color and UV binds now drive MToon parameters as well as
+  flutter_scene's standard materials.
 - Example viewer app and `mise run fetch-samples`.
