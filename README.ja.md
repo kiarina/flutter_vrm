@@ -17,7 +17,7 @@ flutter_scene は、スキニング・モーフターゲット・PBR の材質�
 flutter_vrm は同じバイト列からその拡張を読み、読み込まれたモデルを VRM の定めどおりに動かします。humanoid の骨、表情、視線、まばたきです。
 
 > [!NOTE]
-> flutter_vrm はまだ初期段階（`0.1.0-dev`）です。API は変わる可能性があり、pub.dev にも公開していません。
+> flutter_vrm はまだ初期段階（`0.1.0-dev`）です。版をまたいで API が変わる可能性があります。
 
 ## Features
 
@@ -58,9 +58,7 @@ Flutter 3.47 以上と、flutter_scene の準備（プラットフォームご�
 ```yaml
 dependencies:
   flutter_scene: ^0.23.0
-  flutter_vrm:
-    git:
-      url: https://github.com/kiarina/flutter_vrm
+  flutter_vrm: ^0.1.0-dev.1
 ```
 
 ```dart
@@ -124,24 +122,11 @@ avatar.update(deltaSeconds, camera: camera);
 
 ### Which flutter_scene
 
-flutter_vrm は、公開済みの flutter_scene 0.23 と本家の `master`（開発中の 0.24）のどちらでもコンパイルできますが、
-動作を確かめているのは `master` です（MToon のコンパイル済みシェーダーを含む。読み込めないときは glTF の材質のまま描きます）。このリポジトリは `master` の特定の
-commit に固定して開発しています。私たちの計測では Android で 2〜3 倍速く描けました。アプリで同じようにするには、同じ commit の
-2 つのパッケージを override します。
-
-```yaml
-dependency_overrides:
-  flutter_scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/flutter_scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-  scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-```
+flutter_vrm は公開済みの flutter_scene 0.23 で動き、これを既定とします。このリポジトリは本家の `master`（開発中の 0.24）の
+特定の commit に固定して開発しています。`master` は私たちの計測で Android で 2〜3 倍速く描け、glTF の sampler（wrap と filter）を
+テクスチャに反映します。0.23 では、UV をずらして目を閉じるモデルに暗い斑点が出ることがあります。ただし `master` はまだ勧められません。
+M4 Max の Mac では、起動時に Metal のシェーダーコンパイラがそのパイプラインで異常終了します（M1 Max では動きます）。
+0.24 が公開されたら、flutter_vrm はそれを必須にします。
 
 ## Example
 

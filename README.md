@@ -19,7 +19,7 @@ extensions. flutter_vrm reads those extensions from the same bytes and drives th
 model the way VRM describes it: humanoid bones, expressions, look-at, and blinking.
 
 > [!NOTE]
-> flutter_vrm is at an early stage (`0.1.0-dev`). APIs may change, and it is not on pub.dev yet.
+> flutter_vrm is at an early stage (`0.1.0-dev`). APIs may change between releases.
 
 ## Features
 
@@ -74,9 +74,7 @@ platform and `dart run flutter_scene:init`); see the
 ```yaml
 dependencies:
   flutter_scene: ^0.23.0
-  flutter_vrm:
-    git:
-      url: https://github.com/kiarina/flutter_vrm
+  flutter_vrm: ^0.1.0-dev.1
 ```
 
 ```dart
@@ -142,25 +140,13 @@ flutter_scene maps to -Z in the scene.
 
 ### Which flutter_scene
 
-flutter_vrm compiles against the published flutter_scene 0.23 and its upstream `master`
-(0.24 in progress), but is tested on `master` (MToon's compiled shaders included; if they
-fail to load, avatars fall back to the imported glTF materials). This repository develops against a pinned `master` commit, which in our
-measurements ran 2 to 3 times faster on Android. To do the same in your app, override both
-packages from the same commit:
-
-```yaml
-dependency_overrides:
-  flutter_scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/flutter_scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-  scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-```
+flutter_vrm works with the published flutter_scene 0.23, and that is the default. This
+repository develops against a pinned upstream `master` commit (0.24 in progress), which in our
+measurements ran 2 to 3 times faster on Android and applies glTF samplers (wrap and filter)
+to imported textures; on 0.23, models that close their eyes by shifting UVs can show dark
+specks. `master` is not safe to recommend yet: on a Mac with an M4 Max, the Metal shader
+compiler crashes on its pipelines at startup (an M1 Max runs it). Once 0.24 is published,
+flutter_vrm will require it.
 
 ## Example
 

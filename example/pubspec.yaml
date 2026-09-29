@@ -110,16 +110,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
-# Same pinned upstream commit as the package (see ../pubspec.yaml).
-dependency_overrides:
-  flutter_scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/flutter_scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-  scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53

@@ -42,13 +42,18 @@
 
 ## flutter_scene の版
 
-- `pubspec.yaml` の依存は `>=0.23.0 <0.25.0`。開発と CI は `dependency_overrides` で本家の `master` の commit に固定する
-  （`flutter_scene` と `scene` の両方。`example/pubspec.yaml` も同じ commit）
+- `pubspec.yaml` の依存は `>=0.23.0 <0.25.0`。開発と CI は `pubspec_overrides.yaml` の `dependency_overrides` で本家の `master` の
+  commit に固定する（`flutter_scene` と `scene` の両方。`example/pubspec_overrides.yaml` も同じ commit）。root の
+  `pubspec_overrides.yaml` は pub.dev の公開物に入らないので、利用者は自分の flutter_scene を選ぶ
+- README は 0.23 を既定として勧める。`master` は M4 Max の Mac で起動時に Metal のシェーダーコンパイラが異常終了する
+  （`cff220e` と `b02c999`。M1 Max では動く）ので、直るまで利用者へ勧めない。0.24 が公開されたら下限を上げ、overrides を外す
+- pub.dev への公開は取り消せない（discontinue しかできない）。公開の前にリポジトリの持ち主の確認を通し、`flutter pub publish --dry-run` の
+  結果を見せる
 - 本家の不具合を直すときは、fork（`kiarina/flutter_scene`）の branch で直して本家へ Pull Request を出す。取り込まれるまでの間だけ
   override を fork の branch に向け、取り込まれたら本家の commit に戻す。fork を配布物として保たない
 - 本家への Pull Request・issue の文面は、出す前にリポジトリの持ち主の確認を通す
 - commit を上げたら、パッケージと example の両方で `mise run` を通す。0.23.0 でもコンパイルできることを、
-  override を外した一時的なコピーで確かめる
+  `pubspec_overrides.yaml` を外した一時的なコピーで確かめる
 
 ## テスト
 

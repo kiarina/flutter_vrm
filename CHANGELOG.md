@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.1.0-dev.1] - 2026-09-29
+
 ### Fixed
 
 - MToon no longer washes out on iOS: missing matcap and shading-shift textures now zero their

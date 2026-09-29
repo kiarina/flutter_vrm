@@ -10,7 +10,6 @@ topics:
   - avatar
   - 3d
   - gltf
-publish_to: none # until it can depend on a published flutter_scene release
 
 environment:
   sdk: ^3.10.0
@@ -28,22 +27,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-
-# Development and CI track a fixed upstream master commit, which is 2-3x
-# faster on Android than 0.23.0. Master's flutter_scene needs the `scene`
-# package from the same commit. Apps depending on flutter_vrm choose their own
-# flutter_scene; see README.
-dependency_overrides:
-  flutter_scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/flutter_scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-  scene:
-    git:
-      url: https://github.com/bdero/flutter_scene
-      path: packages/scene
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
 
 flutter:
   assets:

@@ -37,9 +37,6 @@ jobs:
       # The published flutter_scene must keep compiling too.
       - name: Against flutter_scene 0.23 (no overrides)
         run: |
-          python3 - <<'PY'
-          s = open('pubspec.yaml').read()
-          open('pubspec.yaml', 'w').write(s[: s.index('dependency_overrides:')])
-          PY
+          rm pubspec_overrides.yaml
           flutter pub get
           flutter analyze lib
