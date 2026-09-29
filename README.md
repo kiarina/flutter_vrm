@@ -144,11 +144,12 @@ flutter_vrm works with the published flutter_scene 0.23, and that is the default
 repository develops against a pinned upstream `master` commit (0.24 in progress), which in our
 measurements ran 2 to 3 times faster on Android and applies glTF samplers (wrap and filter)
 to imported textures; on 0.23, models that close their eyes by shifting UVs can show dark
-specks. `master` is not safe to recommend yet: on a Mac with an M4 Max, the Metal shader
-compiler crashes on its shadowed standard materials under fast math, so apps crash on their
-first shadowed frame (an M1 Max runs it;
-[bdero/flutter_scene#436](https://github.com/bdero/flutter_scene/issues/436)). Once 0.24 is
-published and runs on M4 Macs, flutter_vrm will require it.
+specks. `master` is not safe to recommend yet: on M3-class and newer GPUs (M3 and M4 Macs,
+recent iPhones), the Metal shader compiler crashes on its shadowed standard materials under
+fast math, so apps crash on their first shadowed frame (an M1 Max runs it;
+[bdero/flutter_scene#436](https://github.com/bdero/flutter_scene/issues/436), fixed by
+[#438](https://github.com/bdero/flutter_scene/pull/438) once it lands). Once 0.24 is published
+with that fix, flutter_vrm will require it.
 
 ## Example
 

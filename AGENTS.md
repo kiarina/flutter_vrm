@@ -45,10 +45,11 @@
 - `pubspec.yaml` の依存は `>=0.23.0 <0.25.0`。開発と CI は `pubspec_overrides.yaml` の `dependency_overrides` で本家の `master` の
   commit に固定する（`flutter_scene` と `scene` の両方。`example/pubspec_overrides.yaml` も同じ commit）。root の
   `pubspec_overrides.yaml` は pub.dev の公開物に入らないので、利用者は自分の flutter_scene を選ぶ
-- README は 0.23 を既定として勧める。`master`（2026-09-16 の `1fa830b2` 以降）は M4 Max の Mac で、影ありの標準の材質を fast math で
-  コンパイルすると Metal のシェーダーコンパイラが異常終了する（M1 Max では動く。fast math を切れば動く。本家 #436、Apple FB24988821、
-  切り分けは labs `2026/09/29/flutter-scene-m4-metal-crash`）ので、直るまで利用者へ勧めない。0.24 が公開され M4 で動くことを確かめたら、
-  下限を上げて overrides を外す。M4 の Mac で example を動かすときは lab の `interpose/safemath.m` を `DYLD_INSERT_LIBRARIES` で差し込む
+- README は 0.23 を既定として勧める。`master`（2026-09-16 の `1fa830b2` 以降）は M3 世代以降の GPU（M3・M4 の Mac、最近の iPhone）で、
+  影ありの標準の材質を fast math でコンパイルすると Metal のシェーダーコンパイラが異常終了する（M1 Max では動く。本家 #436、Apple FB24988821、
+  切り分けは labs `2026/09/29/flutter-scene-m4-metal-crash`）。原因は照明と影の処理が 2 組インライン展開されていたことで、本家の #438 で直る
+  （M4 Max で確かめた）。#438 が master に入ったら固定先をその commit に上げ、0.24 が公開されたら下限を上げて overrides を外す。
+  それまで M4 の Mac で example を動かすときは lab の `interpose/safemath.m` を `DYLD_INSERT_LIBRARIES` で差し込む
   （`flutter run` や `nohup` を経由すると SIP で捨てられるので、ビルドした実行ファイルを直接起動する）
 - pub.dev への公開は取り消せない（discontinue しかできない）。公開の前にリポジトリの持ち主の確認を通し、`flutter pub publish --dry-run` の
   結果を見せる
