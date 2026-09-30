@@ -35,8 +35,9 @@
   頼らない）。確認は `test/schema/vrm_animation_test.dart` と example の `POSE=test.vrma`
 - MToon の輪郭線は、同じ geometry に輪郭線用の材質（`mtoon_outline*`、表の面を捨てて頂点の段階で法線方向へ押し出す）の
   primitive を足して描く。**`.fmat` の sampler は fragment の段階でしか読めない**ので、太さのテクスチャは fragment で
-  discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 宣言した attribute が無い
-  skinned mesh ではゼロでなく不定値が読まれて殻が爆発し、VRoid のモデルに付けると 3D の描画全体が消えた（b02c999、macOS）
+  discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 材質と geometry の片方にしか無いと壊れる。
+  宣言した材質で、付けていない skinned mesh を描くと不定値が読まれて殻が爆発し、付けた geometry を宣言しない材質（MToon の本体）でも描くと
+  その描画が飛ばされ、影ありなら 3D の描画全体が消える（本家 #440、再現は labs `2026/09/30/flutter-scene-fmat-repros`）
 - flutter_scene の runtime importer は glTF のデータを変えずに読み込み、根のノードに Z の反転を置く。
   そのためこのパッケージの計算はすべてその根の子の空間（= glTF / VRM のモデル空間）で行う
 
@@ -45,12 +46,10 @@
 - `pubspec.yaml` の依存は `>=0.23.0 <0.25.0`。開発と CI は `pubspec_overrides.yaml` の `dependency_overrides` で本家の `master` の
   commit に固定する（`flutter_scene` と `scene` の両方。`example/pubspec_overrides.yaml` も同じ commit）。root の
   `pubspec_overrides.yaml` は pub.dev の公開物に入らないので、利用者は自分の flutter_scene を選ぶ
-- README は 0.23 を既定として勧める。`master`（2026-09-16 の `1fa830b2` 以降）は M3 世代以降の GPU（M3・M4 の Mac、最近の iPhone）で、
-  影ありの標準の材質を fast math でコンパイルすると Metal のシェーダーコンパイラが異常終了する（M1 Max では動く。本家 #436、Apple FB24988821、
-  切り分けは labs `2026/09/29/flutter-scene-m4-metal-crash`）。原因は照明と影の処理が 2 組インライン展開されていたことで、本家の #438 で直る
-  （M4 Max で確かめた）。#438 が master に入ったら固定先をその commit に上げ、0.24 が公開されたら下限を上げて overrides を外す。
-  それまで M4 の Mac で example を動かすときは lab の `interpose/safemath.m` を `DYLD_INSERT_LIBRARIES` で差し込む
-  （`flutter run` や `nohup` を経由すると SIP で捨てられるので、ビルドした実行ファイルを直接起動する）
+- README は 0.23 を既定として勧める。0.24 が公開されたら下限を上げて overrides を外す
+- `master` の `1fa830b2`（2026-09-16）から `0852630d`（2026-09-30、本家 #438）の前までは、M3 世代以降の GPU（M3・M4 の Mac、最近の iPhone）で
+  影ありの材質が Metal のシェーダーコンパイラを落とす（本家 #436、切り分けは labs `2026/09/29/flutter-scene-m4-metal-crash`）。固定先はこの範囲に
+  戻さない。どうしてもこの範囲を M4 の Mac で動かすときは、lab の `interpose/safemath.m` を `DYLD_INSERT_LIBRARIES` で差し込む
 - pub.dev への公開は取り消せない（discontinue しかできない）。公開の前にリポジトリの持ち主の確認を通し、`flutter pub publish --dry-run` の
   結果を見せる
 - 本家の不具合を直すときは、fork（`kiarina/flutter_scene`）の branch で直して本家へ Pull Request を出す。取り込まれるまでの間だけ

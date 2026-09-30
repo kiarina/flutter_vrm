@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Development and CI now pin flutter_scene `master` at `aae39f9`, which includes the fix for
+  the crash on M3-class and newer GPUs ([bdero/flutter_scene#438](https://github.com/bdero/flutter_scene/pull/438)).
+
 ## [0.1.0-dev.1] - 2026-09-29
 
 ### Fixed

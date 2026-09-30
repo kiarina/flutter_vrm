@@ -377,8 +377,8 @@ class VrmMToonFactory {
       normalInfo == null ? 0 : _num(normalInfo['scale'], 1),
     );
     // Missing textures must contribute nothing. Do not rely on the shader's
-    // `default_black` placeholder: on iOS it samples white (seen with
-    // flutter_scene b02c999), which adds a full-strength matcap everywhere.
+    // `default_black` placeholder: flutter_scene binds white for it on every
+    // platform (bdero/flutter_scene#441), which adds a full-strength matcap.
     final shiftInfo = mtoon['shadingShiftTexture'] as Map<String, dynamic>?;
     p.setFloat(
       'shading_shift_texture_scale',

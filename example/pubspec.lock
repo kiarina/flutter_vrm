@@ -143,8 +143,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/flutter_scene"
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-      resolved-ref: cff220e468ec1540071a1ff95067f5b474259b53
+      ref: aae39f978182e983d686f4bb5629f90dcdc25977
+      resolved-ref: aae39f978182e983d686f4bb5629f90dcdc25977
       url: "https://github.com/bdero/flutter_scene"
     source: git
     version: "0.23.0"
@@ -276,8 +276,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/scene"
-      ref: cff220e468ec1540071a1ff95067f5b474259b53
-      resolved-ref: cff220e468ec1540071a1ff95067f5b474259b53
+      ref: aae39f978182e983d686f4bb5629f90dcdc25977
+      resolved-ref: aae39f978182e983d686f4bb5629f90dcdc25977
       url: "https://github.com/bdero/flutter_scene"
     source: git
     version: "0.3.0"
