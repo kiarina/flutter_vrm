@@ -65,6 +65,8 @@
 ## テスト
 
 - `flutter test`。VRM のファイルは使わず、`test/support/synthetic_vrm.dart` でメモリ上に組み立てる
+- テストの環境には GPU が無い。メッシュや材質が要るテストは、`UnskinnedGeometry()` と材質のインスタンス（`UnlitMaterial()` など）で
+  `Mesh.primitives` を組む（`test/runtime/unlit_alpha_test.dart`）。`CuboidGeometry` などは作る時点で GPU へ上げるので使えない。`Scene()` も作れない
 - 骨や視線の計算は、軸がそろっていない休止姿勢のリグ（`test/runtime/runtime_test.dart` の `chainVrm`）で確かめる
 - 見た目の確認は example で行う。`--dart-define` の `MODEL`・`POSE`・`EXPRESSIONS`（例 `happy=1,aa=0.5`）・`YAW`・
   `FRAMING=face`・`FOCUS_OFFSET`・`AA`（`msaa` など）・`MTOON=false` で、操作せずに同じ画面を再現できる。
@@ -76,7 +78,9 @@
 - バストアップの撮影は `mise run portrait <file.vrm>...`（`example/lib/portrait.dart` を macOS でビルドして、VRM ごとに
   背景透過の PNG を書く）。任意のパスを読み書きするため、example の macOS の debug ビルドは sandbox を切っている。
   構図は `VrmPortrait.bust`（`lib/src/runtime/portrait.dart`）で、頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
-  色のある背景に重ねると分かる
+  色のある背景に重ねると分かる（穴かどうかは、後ろに不透明な板を置いて撮ると切り分けられる。板まで消えていれば、合成されずに上書きされている）。
+  `mise run portrait` は example の macOS の debug ビルドを撮影用の入口で上書きする。画面の読み戻しは `RepaintBoundary.toImage`
+  （skybox を置かなければ背景は透明）
 - 実機の iOS で見つけた描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる。
   ただし Simulator の GPU とシェーダーのコンパイラは Mac のものなので、直ったことの確認は実機でする
 
