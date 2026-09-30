@@ -37,7 +37,8 @@
   primitive を足して描く。**`.fmat` の sampler は fragment の段階でしか読めない**ので、太さのテクスチャは fragment で
   discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 材質と geometry の片方にしか無いと壊れる。
   宣言した材質で、付けていない skinned mesh を描くと不定値が読まれて殻が爆発し、付けた geometry を宣言しない材質（MToon の本体）でも描くと
-  その描画が飛ばされ、影ありなら 3D の描画全体が消える（本家 #440、再現は labs `2026/09/30/flutter-scene-fmat-repros`）
+  その描画が飛ばされ、影ありなら 3D の描画全体が消える（本家 #440、再現は labs `2026/09/30/flutter-scene-fmat-repros`）。
+  本家の #443 で直る（M4 の Mac と iPad の実機で確かめた。未マージ）。固定先がそれを含んだら、太さを頂点の attribute で渡す形に戻すか決める
 - flutter_scene の runtime importer は unlit（`KHR_materials_unlit`）の材質の `alphaMode` を読まず、常に不透明にする。
   `VrmAvatar.fromImported` が glTF の値から補う（`MASK` は unlit に cutoff が無いので blend）。確認は
   `test/runtime/unlit_alpha_test.dart` と、みぃねこの口（閉じた口の面が半透明の unlit）
@@ -76,7 +77,8 @@
   背景透過の PNG を書く）。任意のパスを読み書きするため、example の macOS の debug ビルドは sandbox を切っている。
   構図は `VrmPortrait.bust`（`lib/src/runtime/portrait.dart`）で、頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
   色のある背景に重ねると分かる
-- iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
+- 実機の iOS で見つけた描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる。
+  ただし Simulator の GPU とシェーダーのコンパイラは Mac のものなので、直ったことの確認は実機でする
 
 ## VRM のファイル
 
