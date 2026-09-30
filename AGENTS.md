@@ -67,7 +67,8 @@
   `EXPRESSIONS` に `blink` を入れると自動まばたきが止まる。`POSE=turn` は腰を左右にひねって揺れものを見せ、`POSE=test.vrma` のように
   `.vrma` のファイル名を渡すと VRM Animation を再生する
 - 読み込み時間は `LOADS=4` で同じモデルを 4 回読み、「flutter_scene の読み込み + flutter_vrm」の内訳を並べる。1 回目だけ遅いときは、
-  初めて描くフレームの準備を待たされていることがある（Windows で 25 秒）
+  初めて描くフレームの準備を待たされていることがある（Windows。ANGLE がシェーダーを D3DCompile で変換する時間で、`aae39f9` の影ありで 7〜8 秒、
+  起動のたびにやり直す。切り分けは labs `2026/09/30/flutter-scene-windows-first-draw`）
 - iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
 
 ## VRM のファイル
