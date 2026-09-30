@@ -142,6 +142,15 @@ flutter run -d macos        # ios、android、windows、chrome でも
 
 自分の `.vrm` と `.vrma` を `example/assets/local/`（git の対象外）に置くと、一覧に出ます。
 
+`mise run portrait` は、任意の `.vrm` のバストアップを example と同じ描画で背景透過の PNG に撮ります。アバターの選択画面や
+サムネに使えます（macOS）。
+
+```sh
+mise run portrait path/to/avatar.vrm --out portraits   # portraits/avatar-bust.png に書き出す
+```
+
+`--size` で一辺のピクセル数（既定 512）、`--expressions` で表情（例 `happy=0.3`）を指定します。
+
 ## Development
 
 ```sh

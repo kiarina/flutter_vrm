@@ -38,6 +38,9 @@
   discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 材質と geometry の片方にしか無いと壊れる。
   宣言した材質で、付けていない skinned mesh を描くと不定値が読まれて殻が爆発し、付けた geometry を宣言しない材質（MToon の本体）でも描くと
   その描画が飛ばされ、影ありなら 3D の描画全体が消える（本家 #440、再現は labs `2026/09/30/flutter-scene-fmat-repros`）
+- flutter_scene の runtime importer は unlit（`KHR_materials_unlit`）の材質の `alphaMode` を読まず、常に不透明にする。
+  `VrmAvatar.fromImported` が glTF の値から補う（`MASK` は unlit に cutoff が無いので blend）。確認は
+  `test/runtime/unlit_alpha_test.dart` と、みぃねこの口（閉じた口の面が半透明の unlit）
 - flutter_scene の runtime importer は glTF のデータを変えずに読み込み、根のノードに Z の反転を置く。
   そのためこのパッケージの計算はすべてその根の子の空間（= glTF / VRM のモデル空間）で行う
 
@@ -69,6 +72,10 @@
 - 読み込み時間は `LOADS=4` で同じモデルを 4 回読み、「flutter_scene の読み込み + flutter_vrm」の内訳を並べる。1 回目だけ遅いときは、
   初めて描くフレームの準備を待たされていることがある（Windows。ANGLE がシェーダーを D3DCompile で変換する時間で、`aae39f9` の影ありで 7〜8 秒、
   起動のたびにやり直す。切り分けは labs `2026/09/30/flutter-scene-windows-first-draw`）
+- バストアップの撮影は `mise run portrait <file.vrm>...`（`example/lib/portrait.dart` を macOS でビルドして、VRM ごとに
+  背景透過の PNG を書く）。任意のパスを読み書きするため、example の macOS の debug ビルドは sandbox を切っている。
+  構図は頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
+  色のある背景に重ねると分かる
 - iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
 
 ## VRM のファイル

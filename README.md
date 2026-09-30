@@ -165,6 +165,16 @@ flutter run -d macos        # or ios, android, windows, chrome
 Put your own `.vrm` and `.vrma` files in `example/assets/local/` (git-ignored) to see them
 in the lists.
 
+`mise run portrait` takes a bust-up portrait of any `.vrm` file on a transparent background,
+the same way the example renders it, for avatar pickers and thumbnails (macOS):
+
+```sh
+mise run portrait path/to/avatar.vrm --out portraits   # writes portraits/avatar-bust.png
+```
+
+`--size` sets the side in pixels (default 512) and `--expressions` the expressions (for
+example `happy=0.3`).
+
 ## Development
 
 ```sh

@@ -183,6 +183,7 @@ class VrmAvatar {
         handles[e.key] = [h];
         mtoonHandles.add(h);
       } else {
+        _applyUnlitAlphaMode(document.gltf, e.key, e.value);
         handles[e.key] = [
           for (final m in {for (final p in e.value) p.material})
             VrmStandardMaterialHandle(m),
@@ -286,6 +287,29 @@ class VrmAvatar {
     springBones.update(deltaSeconds);
     autoBlink.update(deltaSeconds, expressions);
     expressions.apply();
+  }
+}
+
+/// flutter_scene's importer leaves unlit (`KHR_materials_unlit`) materials
+/// opaque whatever their glTF `alphaMode` says, so a translucent unlit
+/// surface overwrites what is behind it, alpha included. Sets the mode from
+/// the glTF material. `MASK` becomes blend, as flutter_scene's unlit material
+/// has no cutoff yet.
+void _applyUnlitAlphaMode(
+  Map<String, dynamic> gltf,
+  int materialIndex,
+  List<MeshPrimitive> primitives,
+) {
+  final materials = (gltf['materials'] as List? ?? const [])
+      .cast<Map<String, dynamic>>();
+  if (materialIndex < 0 || materialIndex >= materials.length) return;
+  final mode = materials[materialIndex]['alphaMode'] as String?;
+  if (mode != 'BLEND' && mode != 'MASK') return;
+  for (final p in primitives) {
+    final m = p.material;
+    if (m is UnlitMaterial && m.alphaMode == AlphaMode.opaque) {
+      m.alphaMode = AlphaMode.blend;
+    }
   }
 }
 

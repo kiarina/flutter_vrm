@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Translucent unlit materials (`KHR_materials_unlit` with `alphaMode` `BLEND` or `MASK`) now
+  blend. flutter_scene's importer left them opaque, so their transparent parts cut holes
+  through the model and whatever was behind it.
+
+### Added
+
+- `mise run portrait <file.vrm>...` takes a bust-up portrait of each model on a transparent
+  background and writes it as a PNG (macOS), for avatar pickers and thumbnails.
+
 ### Changed
 
 - Development and CI now pin flutter_scene `master` at `aae39f9`, which includes the fix for

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+#MISE description="Take a bust-up portrait (transparent PNG) of each VRM file: portrait <file.vrm>... [--out DIR] [--size PX] [--expressions happy=0.3]"
+# Writes <DIR>/<name>-bust.png for each <name>.vrm (DIR defaults to the current
+# directory). Builds the example's portrait entry point for macOS and runs it;
+# the debug build is not sandboxed, so it reads and writes local files.
+set -euo pipefail
+[ "$(uname)" = Darwin ] || { echo "portrait runs on macOS" >&2; exit 1; }
+out="$PWD" size=512 expressions="" files=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --out) out="$2"; shift 2 ;;
+    --size) size="$2"; shift 2 ;;
+    --expressions) expressions="$2"; shift 2 ;;
+    *) files+=("$1"); shift ;;
+  esac
+done
+[ ${#files[@]} -gt 0 ] || { echo "usage: mise run portrait <file.vrm>... [--out DIR] [--size PX] [--expressions K=V,...]" >&2; exit 2; }
+mkdir -p "$out"
+out="$(cd "$out" && pwd)"
+jobs="$(python3 - "$out" "${files[@]}" <<'PY'
+import json, os, sys
+out = sys.argv[1]
+print(json.dumps([
+    {"in": os.path.abspath(f),
+     "out": os.path.join(out, os.path.splitext(os.path.basename(f))[0] + "-bust.png")}
+    for f in sys.argv[2:]
+]))
+PY
+)"
+cd "$(dirname "$0")/../../example"
+flutter pub get >/dev/null
+flutter build macos --debug -t lib/portrait.dart >/dev/null
+PORTRAIT_JOBS="$jobs" PORTRAIT_SIZE="$size" PORTRAIT_EXPRESSIONS="$expressions" \
+  build/macos/Build/Products/Debug/flutter_vrm_example.app/Contents/MacOS/flutter_vrm_example 2>&1 \
+  | grep '\[portrait\]'
