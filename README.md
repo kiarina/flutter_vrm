@@ -48,6 +48,8 @@ model the way VRM describes it: humanoid bones, expressions, look-at, and blinki
   look-at
 - **Hit testing**: `avatar.hitTest(ray)` tells which body part a tap hit, with capsules that
   follow the posed humanoid bones (a sitting or lying avatar is hit where it is drawn)
+- **Portraits**: `VrmPortrait.bust(avatar, fovYRadians: ...)` places a camera for a bust-up
+  (avatar pickers, thumbnails)
 - **Auto blink**
 - **Renderer-independent parser**: `package:flutter_vrm/vrm_schema.dart` reads GLB and VRM 1.0
   without touching flutter_scene

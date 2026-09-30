@@ -74,7 +74,7 @@
   起動のたびにやり直す。切り分けは labs `2026/09/30/flutter-scene-windows-first-draw`）
 - バストアップの撮影は `mise run portrait <file.vrm>...`（`example/lib/portrait.dart` を macOS でビルドして、VRM ごとに
   背景透過の PNG を書く）。任意のパスを読み書きするため、example の macOS の debug ビルドは sandbox を切っている。
-  構図は頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
+  構図は `VrmPortrait.bust`（`lib/src/runtime/portrait.dart`）で、頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
   色のある背景に重ねると分かる
 - iOS でだけ起きる描画の誤りは、iOS Simulator で再現する（Simulator も iOS 向けのシェーダーを使う）。実機より速く切り分けられる
 

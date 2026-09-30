@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `VrmPortrait.bust` places a camera for a bust-up portrait of an avatar (top of the head to a
+  little below the shoulders, from the front). `mise run portrait` uses it.
 - `mise run portrait <file.vrm>...` takes a bust-up portrait of each model on a transparent
   background and writes it as a PNG (macOS), for avatar pickers and thumbnails.
 

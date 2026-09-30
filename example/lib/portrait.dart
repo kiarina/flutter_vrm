@@ -9,7 +9,6 @@
 // non-zero code if any failed.
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -123,7 +122,13 @@ class _PortraitPageState extends State<PortraitPage> {
       }
     }
     next.update(0);
-    _frame(next);
+    final framing = VrmPortrait.bust(
+      next,
+      fovYRadians: _fovDegrees * vm.degrees2Radians,
+    );
+    camera
+      ..position = framing.position
+      ..target = framing.target;
     next.lookAt.target = camera.position;
     next.springBones.reset();
 
@@ -142,41 +147,6 @@ class _PortraitPageState extends State<PortraitPage> {
     image.dispose();
     await File(output).parent.create(recursive: true);
     await File(output).writeAsBytes(png!.buffer.asUint8List());
-  }
-
-  /// Points the camera at the bust: from the top of the head down to a
-  /// little below the shoulders, the head centered, from the front.
-  void _frame(VrmAvatar a) {
-    final h = a.humanoid;
-    final neck = h.worldPosition(VrmHumanBone.neck);
-    final head = h.worldPosition(VrmHumanBone.head);
-    final shoulders = [
-      h.worldPosition(VrmHumanBone.leftUpperArm),
-      h.worldPosition(VrmHumanBone.rightUpperArm),
-    ].nonNulls.toList();
-    if (head == null) throw StateError('the model has no head bone');
-    // The top of the head: the head capsule reaches the top of the meshes.
-    var top = head.y + 0.2;
-    for (final c in a.hitShapes.capsules) {
-      if (c.bone != VrmHumanBone.head) continue;
-      final ends = c.worldSegment();
-      if (ends != null) {
-        top =
-            math.max(ends.$1.y, ends.$2.y) +
-            c.radius * a.root.globalTransform.getMaxScaleOnAxis();
-      }
-    }
-    final shoulderY = shoulders.isEmpty
-        ? (neck ?? head).y - 0.1
-        : shoulders.map((p) => p.y).reduce((x, y) => x + y) / shoulders.length;
-    final bottom = shoulderY - (top - shoulderY) * 0.35;
-    final span = (top - bottom) * 1.08;
-    final center = vm.Vector3(head.x, (top + bottom) / 2, head.z);
-    final distance = span / 2 / math.tan(_fovDegrees * vm.degrees2Radians / 2);
-    // The model faces -Z in the scene.
-    camera
-      ..position = center + vm.Vector3(0, 0, -distance)
-      ..target = center;
   }
 
   void _onTick(Duration elapsed, double dt) {
