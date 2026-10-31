@@ -143,14 +143,14 @@ flutter_scene maps to -Z in the scene.
 ### Which flutter_scene
 
 flutter_vrm works with the published flutter_scene 0.23, and that is the default. This
-repository develops against a pinned upstream `master` commit (0.24 in progress), which in our
-measurements ran 2 to 3 times faster on Android and applies glTF samplers (wrap and filter)
-to imported textures; on 0.23, models that close their eyes by shifting UVs can show dark
+repository develops against a pinned upstream `master` commit newer than 0.24.3, which in our
+measurements ran 2 to 3 times faster on Android, compiles shaders much faster on Windows, and
+applies glTF samplers (wrap and filter) to imported textures; on 0.23, models that close their eyes by shifting UVs can show dark
 specks. If you use `master`, take a commit from 2026-09-30 or later: earlier ones crash on
 M3-class and newer GPUs (M3 and M4 Macs, recent iPhones) on their first shadowed frame
 ([bdero/flutter_scene#436](https://github.com/bdero/flutter_scene/issues/436), fixed by
-[#438](https://github.com/bdero/flutter_scene/pull/438)). Once 0.24 is published, flutter_vrm
-will require it.
+[#438](https://github.com/bdero/flutter_scene/pull/438)). Once a release includes the pinned
+changes, flutter_vrm will require it.
 
 ## Example
 

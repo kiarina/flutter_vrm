@@ -123,12 +123,12 @@ avatar.update(deltaSeconds, camera: camera);
 
 ### Which flutter_scene
 
-flutter_vrm は公開済みの flutter_scene 0.23 で動き、これを既定とします。このリポジトリは本家の `master`（開発中の 0.24）の
-特定の commit に固定して開発しています。`master` は私たちの計測で Android で 2〜3 倍速く描け、glTF の sampler（wrap と filter）を
+flutter_vrm は公開済みの flutter_scene 0.23 で動き、これを既定とします。このリポジトリは本家の `master`（0.24.3 より新しい）の
+特定の commit に固定して開発しています。`master` は私たちの計測で Android で 2〜3 倍速く描け、Windows のシェーダーのコンパイルも大幅に短く、glTF の sampler（wrap と filter）を
 テクスチャに反映します。0.23 では、UV をずらして目を閉じるモデルに暗い斑点が出ることがあります。`master` を使うなら 2026-09-30 以降の commit に
 してください。それより前は、M3 世代以降の GPU（M3・M4 の Mac、最近の iPhone）で影を描いた最初のフレームにアプリが落ちます
 （[bdero/flutter_scene#436](https://github.com/bdero/flutter_scene/issues/436)。[#438](https://github.com/bdero/flutter_scene/pull/438) で直りました）。
-0.24 が公開されたら、flutter_vrm はそれを必須にします。
+固定先の変更を含む版が公開されたら、flutter_vrm はそれを必須にします。
 
 ## Example
 

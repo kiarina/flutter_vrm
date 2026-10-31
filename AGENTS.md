@@ -29,7 +29,9 @@
 - 当たり判定は humanoid の骨に沿ったカプセル（`VrmHitShapes`）で行う。flutter_scene の `Scene.raycast` は skinned mesh を休止姿勢で
   判定するので、アバターのメッシュには使わない。太さはモデルの hips の高さ（0.85 m を基準）で比例させる。頭だけは頭の骨から
   メッシュの上端まで（glTF の POSITION の min / max から。skinned mesh の `Geometry.localBounds` は空）で、頭の大きいモデルも覆う。確認は
-  `test/runtime/hit_test_test.dart` と example の `HITS=true`（タップで部位が出る）
+  `test/runtime/hit_test_test.dart` と example の `HITS=true`（タップで部位が出る）。`hitTest` は受け取った向きを正規化し、`VrmHit.distance` は
+  ワールドの距離を返す。`Camera.screenPointToRay` の向きは単位ベクトルではないので、同じ ray で別の判定と距離を比べるときは呼び出し側で正規化する
+  （vector_math の `intersectsWithSphere` は単位ベクトルが前提で、そのまま渡すと常に当たる）
 - VRMA は読み込み時に仕様の「NormalizedLocalRotation」（P·local·W⁻¹）へ直す。これは `VrmHumanoidRig` の正規化した回転と同じ
   空間なので、プレイヤーは `setNormalizedRotation` に渡すだけ。四元数の積は自前の Hamilton 積で書く（vector_math の演算子に
   頼らない）。確認は `test/schema/vrm_animation_test.dart` と example の `POSE=test.vrma`
@@ -50,7 +52,7 @@
 - `pubspec.yaml` の依存は `>=0.23.0 <0.25.0`。開発と CI は `pubspec_overrides.yaml` の `dependency_overrides` で本家の `master` の
   commit に固定する（`flutter_scene` と `scene` の両方。`example/pubspec_overrides.yaml` も同じ commit）。root の
   `pubspec_overrides.yaml` は pub.dev の公開物に入らないので、利用者は自分の flutter_scene を選ぶ
-- README は 0.23 を既定として勧める。0.24 が公開されたら下限を上げて overrides を外す
+- README は 0.23 を既定として勧める。pub.dev の最新は 0.24.3 だが、固定先の #502 を含まない。#502 を含む版が出たら下限を上げて overrides を外す
 - `master` の `1fa830b2`（2026-09-16）から `0852630d`（2026-09-30、本家 #438）の前までは、M3 世代以降の GPU（M3・M4 の Mac、最近の iPhone）で
   影ありの材質が Metal のシェーダーコンパイラを落とす（本家 #436、切り分けは labs `2026/09/29/flutter-scene-m4-metal-crash`）。固定先はこの範囲に
   戻さない。どうしてもこの範囲を M4 の Mac で動かすときは、lab の `interpose/safemath.m` を `DYLD_INSERT_LIBRARIES` で差し込む
@@ -73,8 +75,8 @@
   `EXPRESSIONS` に `blink` を入れると自動まばたきが止まる。`POSE=turn` は腰を左右にひねって揺れものを見せ、`POSE=test.vrma` のように
   `.vrma` のファイル名を渡すと VRM Animation を再生する
 - 読み込み時間は `LOADS=4` で同じモデルを 4 回読み、「flutter_scene の読み込み + flutter_vrm」の内訳を並べる。1 回目だけ遅いときは、
-  初めて描くフレームの準備を待たされていることがある（Windows。ANGLE がシェーダーを D3DCompile で変換する時間。本家 #502 で短くなった。
-  起動のたびにやり直す。切り分けは labs `2026/09/30/flutter-scene-windows-first-draw`）
+  初めて描くフレームの準備を待たされていることがある（Windows。ANGLE がシェーダーを D3DCompile で変換する時間で、起動のたびにやり直す。
+  本家 #502 で短くなった。切り分けは labs `2026/09/30/flutter-scene-windows-first-draw`）
 - バストアップの撮影は `mise run portrait <file.vrm>...`（`example/lib/portrait.dart` を macOS でビルドして、VRM ごとに
   背景透過の PNG を書く）。任意のパスを読み書きするため、example の macOS の debug ビルドは sandbox を切っている。
   構図は `VrmPortrait.bust`（`lib/src/runtime/portrait.dart`）で、頭の上端（当たり判定の頭のカプセル）から肩の少し下まで。半透明の材質が穴を開けていないかは、背景透過の PNG を
