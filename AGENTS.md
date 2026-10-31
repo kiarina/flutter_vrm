@@ -40,7 +40,8 @@
   discard するマスクとして使う。**custom attribute（`Geometry.setCustomAttribute`）は使わない。** 材質と geometry の片方にしか無いと壊れる。
   宣言した材質で、付けていない skinned mesh を描くと不定値が読まれて殻が爆発し、付けた geometry を宣言しない材質（MToon の本体）でも描くと
   その描画が飛ばされ、影ありなら 3D の描画全体が消える（本家 #440、再現は labs `2026/09/30/flutter-scene-fmat-repros`）。
-  本家の #443 で直り、今の固定先は含む。太さを頂点の attribute で渡す形に戻すかは未定
+  本家の #443 で直り、今の固定先は含む。太さを頂点の attribute で渡す形に戻すかは未定。
+  輪郭線のように `vertex` を持つ材質は morph が効かない（本家の未対応。ログに `A custom material vertex stage was bound to morphed geometry` と 1 回出る）
 - flutter_scene の runtime importer は unlit（`KHR_materials_unlit`）の材質の `alphaMode` を読まず、常に不透明にする。
   `VrmAvatar.fromImported` が glTF の値から補う（`MASK` は unlit に cutoff が無いので blend）。確認は
   `test/runtime/unlit_alpha_test.dart` と、みぃねこの口（閉じた口の面が半透明の unlit）
