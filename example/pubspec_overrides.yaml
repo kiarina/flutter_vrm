@@ -4,9 +4,9 @@ dependency_overrides:
     git:
       url: https://github.com/bdero/flutter_scene
       path: packages/flutter_scene
-      ref: aae39f978182e983d686f4bb5629f90dcdc25977
+      ref: 0e263beb019bdde2ab3dbe18b2589fbbb838c905
   scene:
     git:
       url: https://github.com/bdero/flutter_scene
       path: packages/scene
-      ref: aae39f978182e983d686f4bb5629f90dcdc25977
+      ref: 0e263beb019bdde2ab3dbe18b2589fbbb838c905

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Development and CI now track flutter_scene master `0e263beb`, which includes #443 (custom
+  attributes) and #502 (shorter shader compiles on ANGLE).
+
 ### Fixed
 
 - Translucent unlit materials (`KHR_materials_unlit` with `alphaMode` `BLEND` or `MASK`) now
